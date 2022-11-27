@@ -1,6 +1,9 @@
-indigo: *.go
-	go build -o indigo *.go
+indigo: *.go output
+	go build -o output/indigo *.go
 
 indigo2: indigo
-	./indigo > indigo2.s
-	clang -o indigo2 indigo2.s
+	./output/indigo > output/indigo2.s
+	clang -o output/indigo2 output/indigo2.s
+
+output:
+	mkdir -p output
