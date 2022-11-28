@@ -1,13 +1,41 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"os"
+)
 
 func main() {
-	fmt.Println(".arch armv8-a")
-	fmt.Println(".text")
-	fmt.Println(".align	2")
-	fmt.Println(".globl _main")
-	fmt.Println("_main:")
-	fmt.Println("\tmov x0, #0")
-	fmt.Println("\tret")
+	args := os.Args[1:]
+	if len(args) < 1 {
+		fmt.Fprintln(os.Stderr, "Expected source file name")
+		os.Exit(1)
+	}
+
+	fileName := args[0]
+	file, err := os.Open(fileName)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Cannot open the source file: %s\n", err.Error())
+		os.Exit(1)
+	}
+
+	fileData := make([]byte, 1024*1024)
+	count, err := file.Read(fileData)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Cannot read the source file: %s\n", err.Error())
+		os.Exit(1)
+	}
+
+	source := string(fileData[:count])
+	tokenStream, err := Tokenize(source)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+	}
+
+	ast, err := Parse(tokenStream)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+	}
+
+	Generate(ast)
 }

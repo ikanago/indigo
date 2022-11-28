@@ -2,20 +2,26 @@ package main
 
 import "fmt"
 
-type TokenType int
+type TokenKind int
 
 const (
 	TOKEN_INT = iota
+	TOKEN_EOF
 )
 
 type Token struct {
-	ty    TokenType
+	kind  TokenKind
 	value string
 }
 
 type TokenStream struct {
 	tokens []Token
 	index  int
+}
+
+func (stream *TokenStream) IsEnd() bool {
+	token := stream.tokens[stream.index]
+	return token.kind == TOKEN_EOF
 }
 
 func Tokenize(source string) (*TokenStream, error) {
@@ -30,7 +36,7 @@ func Tokenize(source string) (*TokenStream, error) {
 
 		if isDigit(currentByte) {
 			digits := readDigit(source, current)
-			token := Token{ty: TOKEN_INT, value: digits}
+			token := Token{kind: TOKEN_INT, value: digits}
 			tokens = append(tokens, token)
 			current += len(digits)
 		} else {
@@ -38,6 +44,8 @@ func Tokenize(source string) (*TokenStream, error) {
 			return nil, err
 		}
 	}
+
+	tokens = append(tokens, Token{kind: TOKEN_EOF})
 
 	return &TokenStream{tokens: tokens, index: 0}, nil
 }
