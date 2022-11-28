@@ -7,3 +7,9 @@ indigo2: indigo
 
 output:
 	mkdir -p output
+
+test: indigo test/**/*.go test/**/expected.txt
+	./run_tests.sh
+
+unittest: indigo *_test.go
+	go test -v

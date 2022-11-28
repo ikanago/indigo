@@ -1,8 +1,9 @@
 set -u
 
-color_ok="\e[32;1m"
-color_failed="\e[31;1m"
-color_off="\e[m"
+# \033[ is the escape for macOS
+color_ok="\033[32;1m"
+color_failed="\033[31;1m"
+color_off="\033[m"
 
 tmp_dir=/tmp/tmpfs/out
 asm_dir=$tmp_dir/asm
@@ -15,7 +16,6 @@ function run_unit_test {
     asm_file=$asm_dir/$test_name.s
     bin_file=$bin_dir/$test_name
 
-    make indigo --silent
     ./output/indigo tests/$test_name/main.go > $asm_file
     clang -o $bin_file $asm_file
 
@@ -25,11 +25,9 @@ function run_unit_test {
     echo $? > $actual_file
 
     if cmp -s $actual_file $expected_file; then
-        echo "[ok]     ${test_name}"
-        return 0
+        echo "${color_ok}[ok]${color_off}     ${test_name}"
     else
-        echo "[failed] ${test_name}"
-        return 1
+        echo "${color_failed}[failed]${color_off} ${test_name}, got" $(cat $actual_file)
     fi
 }
 

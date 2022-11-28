@@ -6,6 +6,7 @@ type TokenKind int
 
 const (
 	TOKEN_INT = iota
+	TOKEN_PLUS
 	TOKEN_EOF
 )
 
@@ -39,6 +40,11 @@ func Tokenize(source string) (*TokenStream, error) {
 			token := Token{kind: TOKEN_INT, value: digits}
 			tokens = append(tokens, token)
 			current += len(digits)
+		} else if source[current] == '+' {
+			symbol := source[current:(current + 1)]
+			token := Token{kind: TOKEN_PLUS, value: symbol}
+			tokens = append(tokens, token)
+			current += len(symbol)
 		} else {
 			err := fmt.Errorf("Unknown character: %c", currentByte)
 			return nil, err

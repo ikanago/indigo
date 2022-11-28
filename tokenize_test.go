@@ -13,6 +13,12 @@ func TestTokenizeInt(t *testing.T) {
 	assert.Equal(t, stream.tokens[1], Token{kind: TOKEN_EOF})
 }
 
+func TestTokenizeSymbols(t *testing.T) {
+	stream, err := Tokenize("+")
+	assert.NoError(t, err)
+	assert.Equal(t, stream.tokens[0], Token{kind: TOKEN_PLUS, value: "+"})
+}
+
 func TestUnknown(t *testing.T) {
 	_, err := Tokenize("42a")
 	assert.Error(t, err)

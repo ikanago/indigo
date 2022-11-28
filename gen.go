@@ -8,13 +8,29 @@ func Generate(ast *Ast) {
 	fmt.Println(".align	2")
 	fmt.Println(".globl _main")
 	fmt.Println("_main:")
-	generateNode(ast.root)
-	fmt.Println("  ret")
+	ast.root.emit()
+	generatePop("x0")
+	fmt.Println("\tret")
 }
 
-func generateNode(node Node) {
-	switch node.(type) {
-	case *IntLiteral:
-		fmt.Printf("  mov x0, %s\n", node.token().value)
-	}
+func (expr *AddOp) emit() {
+	expr.lhs.emit()
+	expr.rhs.emit()
+	generatePop("x1")
+	generatePop("x2")
+	fmt.Printf("\tadd x0, x1, x2\n")
+	generatePush("x0")
+}
+
+func (expr *IntLiteral) emit() {
+	fmt.Printf("\tmov x0, #%s\n", expr.tok.value)
+	generatePush("x0")
+}
+
+func generatePush(register string) {
+	fmt.Printf("\tstr %s, [sp, #-16]!\n", register)
+}
+
+func generatePop(register string) {
+	fmt.Printf("\tldr %s, [sp], #16\n", register)
 }

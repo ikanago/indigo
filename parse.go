@@ -3,7 +3,7 @@ package main
 import "fmt"
 
 type Ast struct {
-	root Node
+	root Expr
 }
 
 func Parse(tokenStream *TokenStream) (*Ast, error) {
@@ -35,11 +35,30 @@ func (parser *parser) skip() {
 }
 
 func (parser *parser) parse() (*Ast, error) {
-	root, err := parser.intLiteral()
+	root, err := parser.addOp()
 	if err != nil {
 		return nil, err
 	}
 	return &Ast{root: root}, nil
+}
+
+func (parser *parser) addOp() (Expr, error) {
+	lhs, err := parser.intLiteral()
+	if err != nil {
+		return nil, err
+	}
+
+	token := parser.peek()
+	if token.kind == TOKEN_PLUS {
+		parser.skip()
+		rhs, err := parser.addOp()
+		if err != nil {
+			return nil, err
+		}
+		return &AddOp{tok: token, lhs: lhs, rhs: rhs}, nil
+	} else {
+		return lhs, nil
+	}
 }
 
 func (parser *parser) intLiteral() (Expr, error) {
