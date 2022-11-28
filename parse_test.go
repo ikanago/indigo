@@ -1,18 +1,35 @@
 package main
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestParseAddOp(t *testing.T) {
-	stream, _ := Tokenize("1+2")
+func TestShortVarDecl(t *testing.T) {
+	stream, _ := Tokenize("xy := 1\n")
+	fmt.Printf("%v\n", stream.tokens)
 	ast, err := Parse(stream)
 	assert.NoError(t, err)
 	assert.Equal(
 		t,
-		ast.root,
+		ast.nodes[0],
+		&ShortVarDecl{
+			tok: &Token{kind: TOKEN_COLONEQUAL, value: ":="},
+			lhs: &Variable{tok: &Token{kind: TOKEN_IDENTIFIER, value: "xy"}, offset: 0},
+			rhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "1"}},
+		},
+	)
+}
+
+func TestParseAddOp(t *testing.T) {
+	stream, _ := Tokenize("1+2\n")
+	ast, err := Parse(stream)
+	assert.NoError(t, err)
+	assert.Equal(
+		t,
+		ast.nodes[0],
 		&AddOp{
 			tok: &Token{kind: TOKEN_PLUS, value: "+"},
 			lhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "1"}},
@@ -22,12 +39,12 @@ func TestParseAddOp(t *testing.T) {
 }
 
 func TestParse2AddOp(t *testing.T) {
-	stream, _ := Tokenize("1+2+3")
+	stream, _ := Tokenize("1+2+3\n")
 	ast, err := Parse(stream)
 	assert.NoError(t, err)
 	assert.Equal(
 		t,
-		ast.root,
+		ast.nodes[0],
 		&AddOp{
 			tok: &Token{kind: TOKEN_PLUS, value: "+"},
 			lhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "1"}},

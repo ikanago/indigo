@@ -8,9 +8,12 @@ func Generate(ast *Ast) {
 	fmt.Println(".align	2")
 	fmt.Println(".globl _main")
 	fmt.Println("_main:")
-	ast.root.emit()
+	ast.nodes[0].emit()
 	generatePop("x0")
 	fmt.Println("\tret")
+}
+
+func (expr *ShortVarDecl) emit() {
 }
 
 func (expr *AddOp) emit() {
@@ -20,6 +23,9 @@ func (expr *AddOp) emit() {
 	generatePop("x2")
 	fmt.Printf("\tadd x0, x1, x2\n")
 	generatePush("x0")
+}
+
+func (expr *Variable) emit() {
 }
 
 func (expr *IntLiteral) emit() {
