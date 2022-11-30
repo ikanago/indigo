@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -9,16 +8,59 @@ import (
 
 func TestShortVarDecl(t *testing.T) {
 	stream, _ := Tokenize("xy := 1\n")
-	fmt.Printf("%v\n", stream.tokens)
 	ast, err := Parse(stream)
 	assert.NoError(t, err)
 	assert.Equal(
 		t,
 		ast.nodes[0],
-		&ShortVarDecl{
+		&Assign{
 			tok: &Token{kind: TOKEN_COLONEQUAL, value: ":="},
 			lhs: &Variable{tok: &Token{kind: TOKEN_IDENTIFIER, value: "xy"}, offset: 0},
 			rhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "1"}},
+		},
+	)
+}
+
+func TestShortVarDeclAndAdd(t *testing.T) {
+	stream, _ := Tokenize("xy := 1 + 2\n")
+	ast, err := Parse(stream)
+	assert.NoError(t, err)
+	assert.Equal(
+		t,
+		ast.nodes[0],
+		&Assign{
+			tok: &Token{kind: TOKEN_COLONEQUAL, value: ":="},
+			lhs: &Variable{tok: &Token{kind: TOKEN_IDENTIFIER, value: "xy"}, offset: 0},
+			rhs: &AddOp{
+				tok: &Token{kind: TOKEN_PLUS, value: "+"},
+				lhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "1"}},
+				rhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "2"}},
+			},
+		},
+	)
+}
+
+func TestShortVarDeclAndReturn(t *testing.T) {
+	stream, _ := Tokenize("xy := 1 + 2\nxy\n")
+	ast, err := Parse(stream)
+	assert.NoError(t, err)
+	assert.Equal(
+		t,
+		ast.nodes,
+		[]Expr{
+			&Assign{
+				tok: &Token{kind: TOKEN_COLONEQUAL, value: ":="},
+				lhs: &Variable{tok: &Token{kind: TOKEN_IDENTIFIER, value: "xy"}, offset: 0},
+				rhs: &AddOp{
+					tok: &Token{kind: TOKEN_PLUS, value: "+"},
+					lhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "1"}},
+					rhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "2"}},
+				},
+			},
+			&Variable{
+				tok:    &Token{kind: TOKEN_IDENTIFIER, value: "xy"},
+				offset: 0,
+			},
 		},
 	)
 }

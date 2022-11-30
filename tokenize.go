@@ -65,7 +65,7 @@ func Tokenize(source string) (*TokenStream, error) {
 			tokens = append(tokens, token)
 			current += len(identifier)
 		} else {
-			err := fmt.Errorf("Unknown character: %c", currentByte)
+			err := fmt.Errorf("unknown character: %c", currentByte)
 			return nil, err
 		}
 	}

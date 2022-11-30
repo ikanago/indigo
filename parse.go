@@ -3,7 +3,8 @@ package main
 import "fmt"
 
 type Ast struct {
-	nodes []Expr
+	nodes    []Expr
+	localEnv *LocalEnv
 }
 
 func Parse(tokenStream *TokenStream) (*Ast, error) {
@@ -50,28 +51,10 @@ func (parser *parser) skip() {
 	}
 }
 
-func (parser *parser) try(fn func() (Expr, error)) (Expr, bool) {
-	prevTokenIndex := parser.tokenStream.index
-	expr, err := fn()
-	if err != nil {
-		parser.tokenStream.index = prevTokenIndex
-		return nil, false
-	}
-	return expr, true
-}
-
-func (parser *parser) consume(expected Token) error {
-	token := parser.peek()
-	if token.kind != expected.kind || token.value != expected.value {
-		return fmt.Errorf("Expected %s, but got %s", expected.value, token.value)
-	}
-	return nil
-}
-
 func (parser *parser) consumeString(expected string) error {
 	token := parser.peek()
 	if token.value != expected {
-		return fmt.Errorf("Expected %s, but got %s", expected, token.value)
+		return fmt.Errorf("expected %s, but got %s", expected, token.value)
 	}
 	parser.skip()
 	return nil
@@ -89,24 +72,33 @@ func (parser *parser) parse() (*Ast, error) {
 			return nil, err
 		}
 	}
-	return &Ast{nodes}, nil
+	return &Ast{nodes: nodes, localEnv: parser.localEnv}, nil
 }
 
 func (parser *parser) stmt() (Expr, error) {
-	if expr, ok := parser.try(parser.shortVarDecl); ok {
-		return expr, nil
-	}
-	if expr, ok := parser.try(parser.addOp); ok {
-		return expr, nil
-	}
-	return nil, nil
-}
-
-func (parser *parser) shortVarDecl() (Expr, error) {
-	lhs, err := parser.newVariable()
+	node, err := parser.addOp()
 	if err != nil {
 		return nil, err
 	}
+
+	token := parser.peek()
+	switch token.kind {
+	case TOKEN_COLONEQUAL:
+		return parser.shortVarDecl(node)
+	default:
+		return node, nil
+	}
+}
+
+func (parser *parser) shortVarDecl(lhs Expr) (Expr, error) {
+	switch lhs.(type) {
+	case *Variable:
+		lhs = parser.newVariable(lhs.(*Variable))
+	default:
+		err := fmt.Errorf("expected variable, but got %s", lhs.token().value)
+		return nil, err
+	}
+
 	if err := parser.consumeString(":="); err != nil {
 		return nil, err
 	}
@@ -115,20 +107,12 @@ func (parser *parser) shortVarDecl() (Expr, error) {
 		return nil, err
 	}
 
-	return &ShortVarDecl{tok: &Token{kind: TOKEN_COLONEQUAL, value: ":="}, lhs: lhs, rhs: rhs}, nil
+	return &Assign{tok: &Token{kind: TOKEN_COLONEQUAL, value: ":="}, lhs: lhs, rhs: rhs}, nil
 }
 
-func (parser *parser) newVariable() (Expr, error) {
-	token := parser.peek()
-	switch token.kind {
-	case TOKEN_IDENTIFIER:
-		parser.skip()
-		offset := parser.localEnv.insertVariable(token.value)
-		return &Variable{tok: token, offset: offset}, nil
-	default:
-		err := fmt.Errorf("Expected variable, but got %s", token.value)
-		return nil, err
-	}
+func (parser *parser) newVariable(identifier *Variable) Expr {
+	offset := parser.localEnv.insertVariable(identifier.token().value)
+	return &Variable{tok: identifier.token(), offset: offset}
 }
 
 func (parser *parser) addOp() (Expr, error) {
@@ -158,14 +142,12 @@ func (parser *parser) primaryExpr() (Expr, error) {
 		return &IntLiteral{tok: token}, nil
 	case TOKEN_IDENTIFIER:
 		parser.skip()
-		offset, ok := parser.localEnv.variables[token.value]
-		if !ok {
-			err := fmt.Errorf("Variable %s is not defined", token.value)
-			return nil, err
+		if offset, ok := parser.localEnv.variables[token.value]; ok {
+			return &Identifier{tok: token, offset: offset}, nil
 		}
-		return &Variable{tok: token, offset: offset}, nil
+		return &Variable{tok: token}, nil
 	default:
-		err := fmt.Errorf("Expected int literal, but got %s", token.value)
+		err := fmt.Errorf("expected int literal, but got %s", token.value)
 		return nil, err
 	}
 }

@@ -7,7 +7,7 @@ type Expr interface {
 	emit()
 }
 
-type ShortVarDecl struct {
+type Assign struct {
 	tok *Token
 	lhs Expr
 	rhs Expr
@@ -20,6 +20,12 @@ type AddOp struct {
 }
 
 type Variable struct {
+	tok *Token
+	// Offset from stack pointer after function's prelude.
+	offset int
+}
+
+type Identifier struct {
 	tok    *Token
 	offset int
 }
@@ -28,7 +34,8 @@ type IntLiteral struct {
 	tok *Token
 }
 
-func (node *ShortVarDecl) token() *Token { return node.tok }
-func (node *AddOp) token() *Token        { return node.tok }
-func (node *Variable) token() *Token     { return node.tok }
-func (node *IntLiteral) token() *Token   { return node.tok }
+func (node *Assign) token() *Token     { return node.tok }
+func (node *AddOp) token() *Token      { return node.tok }
+func (node *Variable) token() *Token   { return node.tok }
+func (node *Identifier) token() *Token { return node.tok }
+func (node *IntLiteral) token() *Token { return node.tok }

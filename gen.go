@@ -8,27 +8,54 @@ func Generate(ast *Ast) {
 	fmt.Println(".align	2")
 	fmt.Println(".globl _main")
 	fmt.Println("_main:")
-	ast.nodes[0].emit()
+	fmt.Printf("\tsub sp, sp, #%d\n", ast.localEnv.totalOffset)
+	fmt.Println("\tmov x7, sp")
+	for _, node := range ast.nodes {
+		node.emit()
+	}
 	generatePop("x0")
+	fmt.Printf("\tadd sp, sp, #%d\n", ast.localEnv.totalOffset)
 	fmt.Println("\tret")
 }
 
-func (expr *ShortVarDecl) emit() {
+func comment(msg string) {
+	fmt.Printf("\t;%s\n", msg)
 }
 
-func (expr *AddOp) emit() {
+func (expr *Assign) emit() {
+	comment("assign")
 	expr.lhs.emit()
 	expr.rhs.emit()
 	generatePop("x1")
 	generatePop("x2")
+	fmt.Println("\tstr x1, [x2]")
+}
+
+func (expr *AddOp) emit() {
+	comment("add")
+	expr.lhs.emit()
+	expr.rhs.emit()
+	generatePop("x2")
+	generatePop("x1")
 	fmt.Printf("\tadd x0, x1, x2\n")
 	generatePush("x0")
 }
 
 func (expr *Variable) emit() {
+	comment("variable")
+	fmt.Printf("\tadd x0, x7, #%d\n", expr.offset)
+	generatePush("x0")
+}
+
+func (expr *Identifier) emit() {
+	comment("identifier")
+	fmt.Printf("\tadd x1, x7, #%d\n", expr.offset)
+	fmt.Println("\tldr x0, [x1]")
+	generatePush("x0")
 }
 
 func (expr *IntLiteral) emit() {
+	comment("int literal")
 	fmt.Printf("\tmov x0, #%s\n", expr.tok.value)
 	generatePush("x0")
 }
