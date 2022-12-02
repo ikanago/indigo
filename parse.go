@@ -66,7 +66,10 @@ func (parser *parser) parse() (*Ast, error) {
 		if parser.peek().kind == TOKEN_EOF {
 			break
 		}
-		node, _ := parser.stmt()
+		node, err := parser.stmt()
+		if err != nil {
+			return nil, err
+		}
 		nodes = append(nodes, node)
 		if err := parser.consumeString(";"); err != nil {
 			return nil, err
@@ -76,12 +79,22 @@ func (parser *parser) parse() (*Ast, error) {
 }
 
 func (parser *parser) stmt() (Expr, error) {
+	token := parser.peek()
+	if token.kind == TOKEN_RETURN {
+		parser.skip()
+		node, err := parser.addOp()
+		if err != nil {
+			return nil, err
+		}
+		return &Return{tok: token, node: node}, nil
+	}
+
 	node, err := parser.addOp()
 	if err != nil {
 		return nil, err
 	}
 
-	token := parser.peek()
+	token = parser.peek()
 	switch token.kind {
 	case TOKEN_COLONEQUAL:
 		return parser.shortVarDecl(node)
@@ -147,7 +160,7 @@ func (parser *parser) primaryExpr() (Expr, error) {
 		}
 		return &Variable{tok: token}, nil
 	default:
-		err := fmt.Errorf("expected int literal, but got %s", token.value)
+		err := fmt.Errorf("expected primary expression, but got %s", token.value)
 		return nil, err
 	}
 }

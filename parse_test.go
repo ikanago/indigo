@@ -12,12 +12,12 @@ func TestShortVarDecl(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(
 		t,
-		ast.nodes[0],
 		&Assign{
 			tok: &Token{kind: TOKEN_COLONEQUAL, value: ":="},
 			lhs: &Variable{tok: &Token{kind: TOKEN_IDENTIFIER, value: "xy"}, offset: 0},
 			rhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "1"}},
 		},
+		ast.nodes[0],
 	)
 }
 
@@ -27,7 +27,6 @@ func TestShortVarDeclAndAdd(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(
 		t,
-		ast.nodes[0],
 		&Assign{
 			tok: &Token{kind: TOKEN_COLONEQUAL, value: ":="},
 			lhs: &Variable{tok: &Token{kind: TOKEN_IDENTIFIER, value: "xy"}, offset: 0},
@@ -37,16 +36,16 @@ func TestShortVarDeclAndAdd(t *testing.T) {
 				rhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "2"}},
 			},
 		},
+		ast.nodes[0],
 	)
 }
 
 func TestShortVarDeclAndReturn(t *testing.T) {
-	stream, _ := Tokenize("xy := 1 + 2\nxy\n")
+	stream, _ := Tokenize("xy := 1 + 2\nreturn xy\n")
 	ast, err := Parse(stream)
 	assert.NoError(t, err)
 	assert.Equal(
 		t,
-		ast.nodes,
 		[]Expr{
 			&Assign{
 				tok: &Token{kind: TOKEN_COLONEQUAL, value: ":="},
@@ -57,11 +56,15 @@ func TestShortVarDeclAndReturn(t *testing.T) {
 					rhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "2"}},
 				},
 			},
-			&Variable{
-				tok:    &Token{kind: TOKEN_IDENTIFIER, value: "xy"},
-				offset: 0,
+			&Return{
+				tok: &Token{kind: TOKEN_RETURN, value: "return"},
+				node: &Identifier{
+					tok:    &Token{kind: TOKEN_IDENTIFIER, value: "xy"},
+					offset: 0,
+				},
 			},
 		},
+		ast.nodes,
 	)
 }
 
@@ -71,12 +74,12 @@ func TestParseAddOp(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(
 		t,
-		ast.nodes[0],
 		&AddOp{
 			tok: &Token{kind: TOKEN_PLUS, value: "+"},
 			lhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "1"}},
 			rhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "2"}},
 		},
+		ast.nodes[0],
 	)
 }
 
@@ -86,7 +89,6 @@ func TestParse2AddOp(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(
 		t,
-		ast.nodes[0],
 		&AddOp{
 			tok: &Token{kind: TOKEN_PLUS, value: "+"},
 			lhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "1"}},
@@ -96,5 +98,6 @@ func TestParse2AddOp(t *testing.T) {
 				rhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "3"}},
 			},
 		},
+		ast.nodes[0],
 	)
 }

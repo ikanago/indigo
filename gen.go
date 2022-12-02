@@ -13,13 +13,17 @@ func Generate(ast *Ast) {
 	for _, node := range ast.nodes {
 		node.emit()
 	}
-	generatePop("x0")
 	fmt.Printf("\tadd sp, sp, #%d\n", ast.localEnv.totalOffset)
 	fmt.Println("\tret")
 }
 
 func comment(msg string) {
 	fmt.Printf("\t;%s\n", msg)
+}
+
+func (expr *Return) emit() {
+	expr.node.emit()
+	generatePop("x0")
 }
 
 func (expr *Assign) emit() {

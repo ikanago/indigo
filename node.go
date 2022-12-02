@@ -7,6 +7,11 @@ type Expr interface {
 	emit()
 }
 
+type Return struct {
+	tok  *Token
+	node Expr
+}
+
 type Assign struct {
 	tok *Token
 	lhs Expr
@@ -34,6 +39,7 @@ type IntLiteral struct {
 	tok *Token
 }
 
+func (node *Return) token() *Token     { return node.tok }
 func (node *Assign) token() *Token     { return node.tok }
 func (node *AddOp) token() *Token      { return node.tok }
 func (node *Variable) token() *Token   { return node.tok }

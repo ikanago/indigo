@@ -7,9 +7,12 @@ type TokenKind int
 const (
 	TOKEN_INT = iota
 	TOKEN_IDENTIFIER
+	// Symbols
 	TOKEN_PLUS
 	TOKEN_SEMICOLON
 	TOKEN_COLONEQUAL
+	// Keywords
+	TOKEN_RETURN
 	TOKEN_EOF
 )
 
@@ -28,7 +31,14 @@ func (stream *TokenStream) IsEnd() bool {
 	return token.kind == TOKEN_EOF
 }
 
+func initKeywordMap() map[string]TokenKind {
+	return map[string]TokenKind{
+		"return": TOKEN_RETURN,
+	}
+}
+
 func Tokenize(source string) (*TokenStream, error) {
+	keywordMap := initKeywordMap()
 	current := 0
 	var tokens []Token
 	for {
@@ -61,7 +71,12 @@ func Tokenize(source string) (*TokenStream, error) {
 			current += len(symbol)
 		} else if isLetter(currentByte) {
 			identifier := readIdentifier(source, current)
-			token := Token{kind: TOKEN_IDENTIFIER, value: identifier}
+			var token Token
+			if kindKeyword, ok := keywordMap[identifier]; ok {
+				token = Token{kind: kindKeyword, value: identifier}
+			} else {
+				token = Token{kind: TOKEN_IDENTIFIER, value: identifier}
+			}
 			tokens = append(tokens, token)
 			current += len(identifier)
 		} else {
