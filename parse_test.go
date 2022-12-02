@@ -6,98 +6,74 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestShortVarDecl(t *testing.T) {
-	stream, _ := Tokenize("xy := 1\n")
+func TestFuncDef(t *testing.T) {
+	stream, _ := Tokenize("func main(){\nabc := 3\nreturn abc\n}\n")
 	ast, err := Parse(stream)
 	assert.NoError(t, err)
 	assert.Equal(
 		t,
-		&Assign{
-			tok: &Token{kind: TOKEN_COLONEQUAL, value: ":="},
-			lhs: &Variable{tok: &Token{kind: TOKEN_IDENTIFIER, value: "xy"}, offset: 0},
-			rhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "1"}},
+		&FuncDecl{
+			tok:  &Token{kind: TOKEN_FUNC, value: "func"},
+			name: "main",
+			body: &Block{
+				tok: &Token{kind: TOKEN_LBRACE, value: "{"},
+				body: []Expr{
+					&Assign{
+						tok: &Token{kind: TOKEN_COLONEQUAL, value: ":="},
+						lhs: &Variable{tok: &Token{kind: TOKEN_IDENTIFIER, value: "abc"}, offset: 0},
+						rhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "3"}},
+					},
+					&Return{
+						tok: &Token{kind: TOKEN_RETURN, value: "return"},
+						node: &Identifier{
+							tok:    &Token{kind: TOKEN_IDENTIFIER, value: "abc"},
+							offset: 0,
+						},
+					},
+				},
+				localEnv: &LocalEnv{variables: map[string]int{"abc": 0}, totalOffset: 16},
+			},
 		},
-		ast.nodes[0],
+		ast.funcs[0],
 	)
 }
 
 func TestShortVarDeclAndAdd(t *testing.T) {
-	stream, _ := Tokenize("xy := 1 + 2\n")
+	stream, _ := Tokenize("func main(){\nxy := 1 + 2 + 3\nreturn xy\n}\n")
 	ast, err := Parse(stream)
 	assert.NoError(t, err)
 	assert.Equal(
 		t,
-		&Assign{
-			tok: &Token{kind: TOKEN_COLONEQUAL, value: ":="},
-			lhs: &Variable{tok: &Token{kind: TOKEN_IDENTIFIER, value: "xy"}, offset: 0},
-			rhs: &AddOp{
-				tok: &Token{kind: TOKEN_PLUS, value: "+"},
-				lhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "1"}},
-				rhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "2"}},
-			},
-		},
-		ast.nodes[0],
-	)
-}
-
-func TestShortVarDeclAndReturn(t *testing.T) {
-	stream, _ := Tokenize("xy := 1 + 2\nreturn xy\n")
-	ast, err := Parse(stream)
-	assert.NoError(t, err)
-	assert.Equal(
-		t,
-		[]Expr{
-			&Assign{
-				tok: &Token{kind: TOKEN_COLONEQUAL, value: ":="},
-				lhs: &Variable{tok: &Token{kind: TOKEN_IDENTIFIER, value: "xy"}, offset: 0},
-				rhs: &AddOp{
-					tok: &Token{kind: TOKEN_PLUS, value: "+"},
-					lhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "1"}},
-					rhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "2"}},
+		&FuncDecl{
+			tok:  &Token{kind: TOKEN_FUNC, value: "func"},
+			name: "main",
+			body: &Block{
+				tok: &Token{kind: TOKEN_LBRACE, value: "{"},
+				body: []Expr{
+					&Assign{
+						tok: &Token{kind: TOKEN_COLONEQUAL, value: ":="},
+						lhs: &Variable{tok: &Token{kind: TOKEN_IDENTIFIER, value: "xy"}, offset: 0},
+						rhs: &AddOp{
+							tok: &Token{kind: TOKEN_PLUS, value: "+"},
+							lhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "1"}},
+							rhs: &AddOp{
+								tok: &Token{kind: TOKEN_PLUS, value: "+"},
+								lhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "2"}},
+								rhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "3"}},
+							},
+						},
+					},
+					&Return{
+						tok: &Token{kind: TOKEN_RETURN, value: "return"},
+						node: &Identifier{
+							tok:    &Token{kind: TOKEN_IDENTIFIER, value: "xy"},
+							offset: 0,
+						},
+					},
 				},
-			},
-			&Return{
-				tok: &Token{kind: TOKEN_RETURN, value: "return"},
-				node: &Identifier{
-					tok:    &Token{kind: TOKEN_IDENTIFIER, value: "xy"},
-					offset: 0,
-				},
+				localEnv: &LocalEnv{variables: map[string]int{"xy": 0}, totalOffset: 16},
 			},
 		},
-		ast.nodes,
-	)
-}
-
-func TestParseAddOp(t *testing.T) {
-	stream, _ := Tokenize("1+2\n")
-	ast, err := Parse(stream)
-	assert.NoError(t, err)
-	assert.Equal(
-		t,
-		&AddOp{
-			tok: &Token{kind: TOKEN_PLUS, value: "+"},
-			lhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "1"}},
-			rhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "2"}},
-		},
-		ast.nodes[0],
-	)
-}
-
-func TestParse2AddOp(t *testing.T) {
-	stream, _ := Tokenize("1+2+3\n")
-	ast, err := Parse(stream)
-	assert.NoError(t, err)
-	assert.Equal(
-		t,
-		&AddOp{
-			tok: &Token{kind: TOKEN_PLUS, value: "+"},
-			lhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "1"}},
-			rhs: &AddOp{
-				tok: &Token{kind: TOKEN_PLUS, value: "+"},
-				lhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "2"}},
-				rhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "3"}},
-			},
-		},
-		ast.nodes[0],
+		ast.funcs[0],
 	)
 }

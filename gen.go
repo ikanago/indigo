@@ -6,19 +6,38 @@ func Generate(ast *Ast) {
 	fmt.Println(".arch armv8-a")
 	fmt.Println(".text")
 	fmt.Println(".align	2")
-	fmt.Println(".globl _main")
-	fmt.Println("_main:")
-	fmt.Printf("\tsub sp, sp, #%d\n", ast.localEnv.totalOffset)
-	fmt.Println("\tmov x7, sp")
-	for _, node := range ast.nodes {
+	for _, node := range ast.funcs {
 		node.emit()
 	}
-	fmt.Printf("\tadd sp, sp, #%d\n", ast.localEnv.totalOffset)
-	fmt.Println("\tret")
 }
 
 func comment(msg string) {
 	fmt.Printf("\t;%s\n", msg)
+}
+
+func (expr *FuncDecl) emit() {
+	var name string
+	if expr.name == "main" {
+		name = "_main"
+	} else {
+		name = expr.name
+	}
+	fmt.Printf(".globl %s\n", name)
+	fmt.Printf("%s:\n", name)
+
+	body := expr.body.(*Block)
+	totalOffset := body.localEnv.totalOffset
+	fmt.Printf("\tsub sp, sp, #%d\n", totalOffset)
+	fmt.Println("\tmov x7, sp")
+	body.emit()
+	fmt.Printf("\tadd sp, sp, #%d\n", totalOffset)
+	fmt.Println("\tret")
+}
+
+func (expr *Block) emit() {
+	for _, stmt := range expr.body {
+		stmt.emit()
+	}
 }
 
 func (expr *Return) emit() {

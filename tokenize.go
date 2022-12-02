@@ -8,10 +8,15 @@ const (
 	TOKEN_INT = iota
 	TOKEN_IDENTIFIER
 	// Symbols
+	TOKEN_LPAREN
+	TOKEN_RPAREN
+	TOKEN_LBRACE
+	TOKEN_RBRACE
 	TOKEN_PLUS
 	TOKEN_SEMICOLON
 	TOKEN_COLONEQUAL
 	// Keywords
+	TOKEN_FUNC
 	TOKEN_RETURN
 	TOKEN_EOF
 )
@@ -33,6 +38,7 @@ func (stream *TokenStream) IsEnd() bool {
 
 func initKeywordMap() map[string]TokenKind {
 	return map[string]TokenKind{
+		"func":   TOKEN_FUNC,
 		"return": TOKEN_RETURN,
 	}
 }
@@ -55,6 +61,31 @@ func Tokenize(source string) (*TokenStream, error) {
 				tokens = append(tokens, Token{kind: TOKEN_SEMICOLON, value: ";"})
 			}
 			current += 1
+		} else if currentByte == '(' {
+			symbol := source[current:(current + 1)]
+			token := Token{kind: TOKEN_LPAREN, value: symbol}
+			tokens = append(tokens, token)
+			current += len(symbol)
+		} else if currentByte == ')' {
+			symbol := source[current:(current + 1)]
+			token := Token{kind: TOKEN_RPAREN, value: symbol}
+			tokens = append(tokens, token)
+			current += len(symbol)
+		} else if currentByte == '{' {
+			symbol := source[current:(current + 1)]
+			token := Token{kind: TOKEN_LBRACE, value: symbol}
+			tokens = append(tokens, token)
+			current += len(symbol)
+		} else if currentByte == '}' {
+			symbol := source[current:(current + 1)]
+			token := Token{kind: TOKEN_RBRACE, value: symbol}
+			tokens = append(tokens, token)
+			current += len(symbol)
+		} else if currentByte == '+' {
+			symbol := source[current:(current + 1)]
+			token := Token{kind: TOKEN_PLUS, value: symbol}
+			tokens = append(tokens, token)
+			current += len(symbol)
 		} else if expectString(source, current, ":=") {
 			token := Token{kind: TOKEN_COLONEQUAL, value: ":="}
 			tokens = append(tokens, token)
@@ -64,11 +95,6 @@ func Tokenize(source string) (*TokenStream, error) {
 			token := Token{kind: TOKEN_INT, value: digits}
 			tokens = append(tokens, token)
 			current += len(digits)
-		} else if currentByte == '+' {
-			symbol := source[current:(current + 1)]
-			token := Token{kind: TOKEN_PLUS, value: symbol}
-			tokens = append(tokens, token)
-			current += len(symbol)
 		} else if isLetter(currentByte) {
 			identifier := readIdentifier(source, current)
 			var token Token
@@ -130,7 +156,7 @@ func shouldInsertSemicolon(tokens []Token) bool {
 	}
 
 	switch tokens[len(tokens)-1].kind {
-	case TOKEN_IDENTIFIER, TOKEN_INT:
+	case TOKEN_IDENTIFIER, TOKEN_INT, TOKEN_RPAREN, TOKEN_RBRACE:
 		return true
 	default:
 		return false

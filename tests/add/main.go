@@ -1,1 +1,3 @@
-return 1 + 2 + 3
+func main() {
+	return 1 + 2 + 3
+}

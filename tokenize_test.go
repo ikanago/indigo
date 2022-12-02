@@ -54,12 +54,20 @@ func TestTokenizeSymbols(t *testing.T) {
 }
 
 func TestTokenizeKeywords(t *testing.T) {
-	stream, err := Tokenize("return abc")
+	stream, err := Tokenize("func main(){\nreturn abc\n}\n")
 	assert.NoError(t, err)
 	assert.Equal(t,
 		[]Token{
+			{kind: TOKEN_FUNC, value: "func"},
+			{kind: TOKEN_IDENTIFIER, value: "main"},
+			{kind: TOKEN_LPAREN, value: "("},
+			{kind: TOKEN_RPAREN, value: ")"},
+			{kind: TOKEN_LBRACE, value: "{"},
 			{kind: TOKEN_RETURN, value: "return"},
 			{kind: TOKEN_IDENTIFIER, value: "abc"},
+			{kind: TOKEN_SEMICOLON, value: ";"},
+			{kind: TOKEN_RBRACE, value: "}"},
+			{kind: TOKEN_SEMICOLON, value: ";"},
 			{kind: TOKEN_EOF, value: ""},
 		},
 		stream.tokens,

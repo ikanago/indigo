@@ -3,8 +3,7 @@ package main
 import "fmt"
 
 type Ast struct {
-	nodes    []Expr
-	localEnv *LocalEnv
+	funcs []Expr
 }
 
 func Parse(tokenStream *TokenStream) (*Ast, error) {
@@ -19,6 +18,10 @@ func Parse(tokenStream *TokenStream) (*Ast, error) {
 type LocalEnv struct {
 	variables   map[string]int
 	totalOffset int
+}
+
+func newLocalEnv() *LocalEnv {
+	return &LocalEnv{variables: map[string]int{}, totalOffset: 0}
 }
 
 func (env *LocalEnv) insertVariable(name string) int {
@@ -36,7 +39,7 @@ type parser struct {
 func makeParser(tokenStream *TokenStream) *parser {
 	return &parser{
 		tokenStream: tokenStream,
-		localEnv:    &LocalEnv{variables: map[string]int{}, totalOffset: 0},
+		localEnv:    nil,
 	}
 }
 
@@ -51,31 +54,47 @@ func (parser *parser) skip() {
 	}
 }
 
-func (parser *parser) consumeString(expected string) error {
+func (parser *parser) expectString(expected string) (*Token, error) {
 	token := parser.peek()
 	if token.value != expected {
-		return fmt.Errorf("expected %s, but got %s", expected, token.value)
+		return nil, fmt.Errorf("unexpected %s, expecting %s", token.value, expected)
 	}
 	parser.skip()
-	return nil
+	return token, nil
+}
+
+func (parser *parser) consumeString(expected string) error {
+	_, err := parser.expectString(expected)
+	return err
 }
 
 func (parser *parser) parse() (*Ast, error) {
-	var nodes []Expr
+	var funcs []Expr
 	for {
 		if parser.peek().kind == TOKEN_EOF {
 			break
 		}
-		node, err := parser.stmt()
+
+		f, err := parser.topLevelDecl()
 		if err != nil {
 			return nil, err
 		}
-		nodes = append(nodes, node)
 		if err := parser.consumeString(";"); err != nil {
 			return nil, err
 		}
+		funcs = append(funcs, f)
 	}
-	return &Ast{nodes: nodes, localEnv: parser.localEnv}, nil
+	return &Ast{funcs}, nil
+}
+
+func (parser *parser) topLevelDecl() (Expr, error) {
+	token := parser.peek()
+	if token.kind == TOKEN_FUNC {
+		return parser.functionDecl()
+	} else {
+		fmt.Printf("%v", token)
+		return nil, fmt.Errorf("syntax error: non-declaration statement outside function body")
+	}
 }
 
 func (parser *parser) stmt() (Expr, error) {
@@ -103,18 +122,72 @@ func (parser *parser) stmt() (Expr, error) {
 	}
 }
 
-func (parser *parser) shortVarDecl(lhs Expr) (Expr, error) {
-	switch lhs.(type) {
-	case *Variable:
-		lhs = parser.newVariable(lhs.(*Variable))
-	default:
-		err := fmt.Errorf("expected variable, but got %s", lhs.token().value)
+func (parser *parser) functionDecl() (Expr, error) {
+	tokenFunc, _ := parser.expectString("func")
+
+	token := parser.peek()
+	if token.kind != TOKEN_IDENTIFIER {
+		err := fmt.Errorf("unexpected %s, expecting name", token.value)
+		return nil, err
+	}
+	name := token.value
+	parser.skip()
+
+	if err := parser.consumeString("("); err != nil {
 		return nil, err
 	}
 
-	if err := parser.consumeString(":="); err != nil {
+	if err := parser.consumeString(")"); err != nil {
 		return nil, err
 	}
+
+	body, err := parser.block()
+	if err != nil {
+		return nil, err
+	}
+
+	return &FuncDecl{tok: tokenFunc, name: name, body: body}, nil
+}
+
+func (parser *parser) block() (Expr, error) {
+	lbraceToken, err := parser.expectString("{")
+	if err != nil {
+		return nil, err
+	}
+
+	parser.localEnv = newLocalEnv()
+	var body []Expr
+	for {
+		if parser.peek().kind == TOKEN_RBRACE {
+			parser.skip()
+			break
+		}
+		if parser.peek().kind == TOKEN_EOF {
+			return nil, fmt.Errorf("unexpected EOF, expecting }")
+		}
+
+		node, err := parser.stmt()
+		if err != nil {
+			return nil, err
+		}
+		body = append(body, node)
+		if err := parser.consumeString(";"); err != nil {
+			return nil, err
+		}
+	}
+
+	return &Block{tok: lbraceToken, body: body, localEnv: parser.localEnv}, nil
+}
+
+func (parser *parser) shortVarDecl(lhs Expr) (Expr, error) {
+	if _, ok := lhs.(*Variable); ok {
+		lhs = parser.newVariable(lhs.(*Variable))
+	} else {
+		err := fmt.Errorf("unexpected %s, expecting variable", lhs.token().value)
+		return nil, err
+	}
+
+	parser.consumeString(":=")
 	rhs, err := parser.addOp()
 	if err != nil {
 		return nil, err
@@ -160,7 +233,7 @@ func (parser *parser) primaryExpr() (Expr, error) {
 		}
 		return &Variable{tok: token}, nil
 	default:
-		err := fmt.Errorf("expected primary expression, but got %s", token.value)
+		err := fmt.Errorf("unexpected %s, expecting primary expression", token.value)
 		return nil, err
 	}
 }

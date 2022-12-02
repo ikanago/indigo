@@ -7,6 +7,18 @@ type Expr interface {
 	emit()
 }
 
+type FuncDecl struct {
+	tok  *Token
+	name string
+	body Expr
+}
+
+type Block struct {
+	tok      *Token
+	body     []Expr
+	localEnv *LocalEnv
+}
+
 type Return struct {
 	tok  *Token
 	node Expr
@@ -39,6 +51,8 @@ type IntLiteral struct {
 	tok *Token
 }
 
+func (node *FuncDecl) token() *Token   { return node.tok }
+func (node *Block) token() *Token      { return node.tok }
 func (node *Return) token() *Token     { return node.tok }
 func (node *Assign) token() *Token     { return node.tok }
 func (node *AddOp) token() *Token      { return node.tok }

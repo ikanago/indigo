@@ -1,1 +1,3 @@
-return 42
+func main() {
+	return 42
+}
