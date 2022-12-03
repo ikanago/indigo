@@ -15,7 +15,7 @@ func comment(msg string) {
 	fmt.Printf("\t;%s\n", msg)
 }
 
-func (expr *FuncDecl) emit() {
+func (expr *FunctionDecl) emit() {
 	var name string
 	if expr.name == "main" {
 		name = "_main"
@@ -80,6 +80,16 @@ func (expr *Identifier) emit() {
 func (expr *IntLiteral) emit() {
 	comment("int literal")
 	fmt.Printf("\tmov x0, #%s\n", expr.tok.value)
+	generatePush("x0")
+}
+
+func (expr *BoolLiteral) emit() {
+	comment("bool literal")
+	if expr.value {
+		fmt.Println("\tmov x0, #1")
+	} else {
+		fmt.Println("\tmov x0, #0")
+	}
 	generatePush("x0")
 }
 

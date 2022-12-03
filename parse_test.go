@@ -12,7 +12,7 @@ func TestFuncDef(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(
 		t,
-		&FuncDecl{
+		&FunctionDecl{
 			tok:  &Token{kind: TOKEN_FUNC, value: "func"},
 			name: "main",
 			body: &Block{
@@ -38,13 +38,40 @@ func TestFuncDef(t *testing.T) {
 	)
 }
 
+func TestBool(t *testing.T) {
+	stream, _ := Tokenize("func main(){\nreturn true\n}\n")
+	ast, err := Parse(stream)
+	assert.NoError(t, err)
+	assert.Equal(
+		t,
+		ast.funcs[0],
+		&FunctionDecl{
+			tok:  &Token{kind: TOKEN_FUNC, value: "func"},
+			name: "main",
+			body: &Block{
+				tok: &Token{kind: TOKEN_LBRACE, value: "{"},
+				body: []Expr{
+					&Return{
+						tok: &Token{kind: TOKEN_RETURN, value: "return"},
+						node: &BoolLiteral{
+							tok:   &Token{kind: TOKEN_IDENTIFIER, value: "true"},
+							value: true,
+						},
+					},
+				},
+				localEnv: &LocalEnv{variables: map[string]int{}, totalOffset: 0},
+			},
+		},
+	)
+}
+
 func TestShortVarDeclAndAdd(t *testing.T) {
 	stream, _ := Tokenize("func main(){\nxy := 1 + 2 + 3\nreturn xy\n}\n")
 	ast, err := Parse(stream)
 	assert.NoError(t, err)
 	assert.Equal(
 		t,
-		&FuncDecl{
+		&FunctionDecl{
 			tok:  &Token{kind: TOKEN_FUNC, value: "func"},
 			name: "main",
 			body: &Block{

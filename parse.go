@@ -146,7 +146,7 @@ func (parser *parser) functionDecl() (Expr, error) {
 		return nil, err
 	}
 
-	return &FuncDecl{tok: tokenFunc, name: name, body: body}, nil
+	return &FunctionDecl{tok: tokenFunc, name: name, body: body}, nil
 }
 
 func (parser *parser) block() (Expr, error) {
@@ -228,6 +228,12 @@ func (parser *parser) primaryExpr() (Expr, error) {
 		return &IntLiteral{tok: token}, nil
 	case TOKEN_IDENTIFIER:
 		parser.skip()
+		if token.value == "true" {
+			return &BoolLiteral{tok: token, value: true}, nil
+		} else if token.value == "false" {
+			return &BoolLiteral{tok: token, value: false}, nil
+		}
+
 		if offset, ok := parser.localEnv.variables[token.value]; ok {
 			return &Identifier{tok: token, offset: offset}, nil
 		}

@@ -7,7 +7,7 @@ type Expr interface {
 	emit()
 }
 
-type FuncDecl struct {
+type FunctionDecl struct {
 	tok  *Token
 	name string
 	body Expr
@@ -51,11 +51,17 @@ type IntLiteral struct {
 	tok *Token
 }
 
-func (node *FuncDecl) token() *Token   { return node.tok }
-func (node *Block) token() *Token      { return node.tok }
-func (node *Return) token() *Token     { return node.tok }
-func (node *Assign) token() *Token     { return node.tok }
-func (node *AddOp) token() *Token      { return node.tok }
-func (node *Variable) token() *Token   { return node.tok }
-func (node *Identifier) token() *Token { return node.tok }
-func (node *IntLiteral) token() *Token { return node.tok }
+type BoolLiteral struct {
+	tok   *Token
+	value bool
+}
+
+func (node *FunctionDecl) token() *Token { return node.tok }
+func (node *Block) token() *Token        { return node.tok }
+func (node *Return) token() *Token       { return node.tok }
+func (node *Assign) token() *Token       { return node.tok }
+func (node *AddOp) token() *Token        { return node.tok }
+func (node *Variable) token() *Token     { return node.tok }
+func (node *Identifier) token() *Token   { return node.tok }
+func (node *IntLiteral) token() *Token   { return node.tok }
+func (node *BoolLiteral) token() *Token  { return node.tok }
