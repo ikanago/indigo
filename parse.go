@@ -3,7 +3,7 @@ package main
 import "fmt"
 
 type Ast struct {
-	funcs []Expr
+	funcs []*FunctionDecl
 }
 
 func Parse(tokenStream *TokenStream) (*Ast, error) {
@@ -69,7 +69,7 @@ func (parser *parser) consumeString(expected string) error {
 }
 
 func (parser *parser) parse() (*Ast, error) {
-	var funcs []Expr
+	var funcs []*FunctionDecl
 	for {
 		if parser.peek().kind == TOKEN_EOF {
 			break
@@ -87,7 +87,7 @@ func (parser *parser) parse() (*Ast, error) {
 	return &Ast{funcs}, nil
 }
 
-func (parser *parser) topLevelDecl() (Expr, error) {
+func (parser *parser) topLevelDecl() (*FunctionDecl, error) {
 	token := parser.peek()
 	if token.kind == TOKEN_FUNC {
 		return parser.functionDecl()
@@ -122,7 +122,7 @@ func (parser *parser) stmt() (Expr, error) {
 	}
 }
 
-func (parser *parser) functionDecl() (Expr, error) {
+func (parser *parser) functionDecl() (*FunctionDecl, error) {
 	tokenFunc, _ := parser.expectString("func")
 
 	token := parser.peek()
@@ -149,7 +149,7 @@ func (parser *parser) functionDecl() (Expr, error) {
 	return &FunctionDecl{tok: tokenFunc, name: name, body: body}, nil
 }
 
-func (parser *parser) block() (Expr, error) {
+func (parser *parser) block() (*Block, error) {
 	lbraceToken, err := parser.expectString("{")
 	if err != nil {
 		return nil, err
@@ -196,7 +196,7 @@ func (parser *parser) shortVarDecl(lhs Expr) (Expr, error) {
 	return &Assign{tok: &Token{kind: TOKEN_COLONEQUAL, value: ":="}, lhs: lhs, rhs: rhs}, nil
 }
 
-func (parser *parser) newVariable(identifier *Variable) Expr {
+func (parser *parser) newVariable(identifier *Variable) *Variable {
 	offset := parser.localEnv.insertVariable(identifier.token().value)
 	return &Variable{tok: identifier.token(), offset: offset}
 }

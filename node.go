@@ -10,7 +10,7 @@ type Expr interface {
 type FunctionDecl struct {
 	tok  *Token
 	name string
-	body Expr
+	body *Block
 }
 
 type Block struct {

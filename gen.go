@@ -25,11 +25,10 @@ func (expr *FunctionDecl) emit() {
 	fmt.Printf(".globl %s\n", name)
 	fmt.Printf("%s:\n", name)
 
-	body := expr.body.(*Block)
-	totalOffset := body.localEnv.totalOffset
+	totalOffset := expr.body.localEnv.totalOffset
 	fmt.Printf("\tsub sp, sp, #%d\n", totalOffset)
 	fmt.Println("\tmov x7, sp")
-	body.emit()
+	expr.body.emit()
 	fmt.Printf("\tadd sp, sp, #%d\n", totalOffset)
 	fmt.Println("\tret")
 }
