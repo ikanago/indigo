@@ -18,37 +18,17 @@ func Parse(tokenStream *TokenStream) (*Ast, error) {
 	return ast, nil
 }
 
-type LocalEnv struct {
-	variables map[string]*Variable
-}
-
-func newLocalEnv() *LocalEnv {
-	return &LocalEnv{variables: map[string]*Variable{}}
-}
-
-func (env *LocalEnv) Exists(name string) bool {
-	_, exists := env.variables[name]
-	return exists
-}
-
-func (env *LocalEnv) Insert(name string, variable *Variable) {
-	env.variables[name] = variable
-}
-
-func (env *LocalEnv) Get(name string) (*Variable, bool) {
-	variable, exists := env.variables[name]
-	return variable, exists
-}
-
 type parser struct {
 	tokenStream *TokenStream
-	localEnv    *LocalEnv
+	localScope  *Scope
+	globalScope *Scope
 }
 
 func makeParser(tokenStream *TokenStream) *parser {
 	return &parser{
 		tokenStream: tokenStream,
-		localEnv:    nil,
+		localScope:  nil,
+		globalScope: newGlobalScope(),
 	}
 }
 
@@ -141,11 +121,8 @@ func (parser *parser) functionDecl() (*FunctionDecl, error) {
 	name := token.value
 	parser.skip()
 
-	if err := parser.consumeString("("); err != nil {
-		return nil, err
-	}
-
-	if err := parser.consumeString(")"); err != nil {
+	returnType, err := parser.signiture()
+	if err != nil {
 		return nil, err
 	}
 
@@ -154,7 +131,33 @@ func (parser *parser) functionDecl() (*FunctionDecl, error) {
 		return nil, err
 	}
 
-	return &FunctionDecl{tok: tokenFunc, name: name, body: body, localEnv: parser.localEnv}, nil
+	return &FunctionDecl{tok: tokenFunc, name: name, returnType: returnType, body: body, scope: parser.localScope}, nil
+}
+
+func (parser *parser) signiture() (*Type, error) {
+	if err := parser.consumeString("("); err != nil {
+		return nil, err
+	}
+
+	if err := parser.consumeString(")"); err != nil {
+		return nil, err
+	}
+
+	return parser.parseType()
+}
+
+func (parser *parser) parseType() (*Type, error) {
+	token := parser.peek()
+	switch token.kind {
+	case TOKEN_LBRACE:
+		return nil, nil
+	case TOKEN_IDENTIFIER:
+		parser.skip()
+		// Assume all types are defined so far.
+		ty, _ := parser.globalScope.GetType(token.value)
+		return ty, nil
+	}
+	return nil, errors.New("expecting type")
 }
 
 func (parser *parser) block() (*Block, error) {
@@ -163,7 +166,7 @@ func (parser *parser) block() (*Block, error) {
 		return nil, err
 	}
 
-	parser.localEnv = newLocalEnv()
+	parser.localScope = newScope()
 	var body []Expr
 	for {
 		if parser.peek().kind == TOKEN_RBRACE {
@@ -189,9 +192,9 @@ func (parser *parser) block() (*Block, error) {
 
 func (parser *parser) shortVarDecl(lhs Expr) (Expr, error) {
 	if _, ok := lhs.(*Identifier); ok {
-		if !parser.localEnv.Exists(lhs.token().value) {
+		if !parser.localScope.ExistsVariable(lhs.token().value) {
 			lhs = &Variable{tok: lhs.token(), ty: &TypeUnresolved}
-			parser.localEnv.Insert(lhs.token().value, lhs.(*Variable))
+			parser.localScope.InsertVariable(lhs.token().value, lhs.(*Variable))
 		} else {
 			return nil, errors.New("no new variables on left side of :=")
 		}

@@ -34,6 +34,28 @@ func TestFuncDef(t *testing.T) {
 	)
 }
 
+func TestFuncReturnType(t *testing.T) {
+	stream, _ := Tokenize("func f() int {\nreturn 3\n}\n")
+	ast, err := Parse(stream)
+	assert.NoError(t, err)
+	assert.Equal(t, &TypeInt, ast.funcs[0].returnType)
+	assert.Equal(
+		t,
+		&Block{
+			tok: &Token{kind: TOKEN_LBRACE, value: "{"},
+			body: []Expr{
+				&Return{
+					tok: &Token{kind: TOKEN_RETURN, value: "return"},
+					node: &IntLiteral{
+						tok: &Token{kind: TOKEN_INT, value: "3"},
+					},
+				},
+			},
+		},
+		ast.funcs[0].body,
+	)
+}
+
 func TestBool(t *testing.T) {
 	stream, _ := Tokenize("func main(){\nreturn true\n}\n")
 	ast, err := Parse(stream)

@@ -7,7 +7,7 @@ import (
 )
 
 func TestResolveVariable(t *testing.T) {
-	stream, _ := Tokenize("func main(){\nx := 1\nreturn x\n}\n")
+	stream, _ := Tokenize("func main() int {\nx := 1\nreturn x\n}\n")
 	ast, err := Parse(stream)
 	assert.NoError(t, err)
 	err = ast.InferType()
@@ -20,7 +20,7 @@ func TestResolveVariable(t *testing.T) {
 }
 
 func TestResolveAdd(t *testing.T) {
-	stream, _ := Tokenize("func main(){\nx := 1 \nreturn x\n}\n")
+	stream, _ := Tokenize("func main() int {\nx := 1 \nreturn x\n}\n")
 	ast, err := Parse(stream)
 	assert.NoError(t, err)
 	err = ast.InferType()
@@ -31,15 +31,39 @@ func TestResolveAdd(t *testing.T) {
 }
 
 func TestReturnUndefinedVariable(t *testing.T) {
-	stream, _ := Tokenize("func main(){\nreturn abc\n}\n")
+	stream, _ := Tokenize("func main() int {\nreturn abc\n}\n")
 	ast, err := Parse(stream)
 	assert.NoError(t, err)
 	err = ast.InferType()
 	assert.EqualError(t, err, "undefined: abc")
 }
 
+func TestNotEnoughReturnType(t *testing.T) {
+	stream, _ := Tokenize("func f() bool {}\n")
+	ast, err := Parse(stream)
+	assert.NoError(t, err)
+	err = ast.InferType()
+	assert.EqualError(t, err, "not enough return values\n\thave: ()\n\twant: (bool)")
+}
+
+func TestTooManyReturnType(t *testing.T) {
+	stream, _ := Tokenize("func f() {\nx := 1\nreturn x\n}\n")
+	ast, err := Parse(stream)
+	assert.NoError(t, err)
+	err = ast.InferType()
+	assert.EqualError(t, err, "too many return values\n\thave: (int)\n\twant: ()")
+}
+
+func TestDiffentReturnType(t *testing.T) {
+	stream, _ := Tokenize("func f() bool {\nx := 1\nreturn x\n}\n")
+	ast, err := Parse(stream)
+	assert.NoError(t, err)
+	err = ast.InferType()
+	assert.EqualError(t, err, "cannot use int as bool in return statement")
+}
+
 func TestDifferentTypeAdd(t *testing.T) {
-	stream, _ := Tokenize("func main(){\nreturn 1 + true\n}\n")
+	stream, _ := Tokenize("func main() int {\nreturn 1 + true\n}\n")
 	ast, err := Parse(stream)
 	assert.NoError(t, err)
 	err = ast.InferType()

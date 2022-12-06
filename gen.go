@@ -26,7 +26,7 @@ func (expr *FunctionDecl) emit() {
 	fmt.Printf("%s:\n", name)
 
 	totalOffset := 0
-	for name, variable := range expr.localEnv.variables {
+	for name, variable := range expr.scope.variables {
 		variable.offset = totalOffset
 		fmt.Printf(";offset of %s: %d\n", name, variable.offset)
 		totalOffset += variable.ty.GetSize()

@@ -8,10 +8,11 @@ type Expr interface {
 }
 
 type FunctionDecl struct {
-	tok      *Token
-	name     string
-	body     *Block
-	localEnv *LocalEnv
+	tok        *Token
+	name       string
+	returnType *Type
+	body       *Block
+	scope      *Scope
 }
 
 type Block struct {
