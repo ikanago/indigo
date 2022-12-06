@@ -30,11 +30,18 @@ func main() {
 	tokenStream, err := Tokenize(source)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+		os.Exit(1)
 	}
 
 	ast, err := Parse(tokenStream)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+		os.Exit(1)
+	}
+
+	if err := ast.InferType(); err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+		os.Exit(1)
 	}
 
 	Generate(ast)

@@ -8,15 +8,15 @@ type Expr interface {
 }
 
 type FunctionDecl struct {
-	tok  *Token
-	name string
-	body *Block
+	tok      *Token
+	name     string
+	body     *Block
+	localEnv *LocalEnv
 }
 
 type Block struct {
-	tok      *Token
-	body     []Expr
-	localEnv *LocalEnv
+	tok  *Token
+	body []Expr
 }
 
 type Return struct {
@@ -36,15 +36,18 @@ type AddOp struct {
 	rhs Expr
 }
 
+// Variable is considered a tag for a memory region with type information.
+// `offset` is determined in code generation step.
 type Variable struct {
 	tok *Token
 	// Offset from stack pointer after function's prelude.
 	offset int
+	ty     *Type
 }
 
 type Identifier struct {
-	tok    *Token
-	offset int
+	tok      *Token
+	variable *Variable
 }
 
 type IntLiteral struct {

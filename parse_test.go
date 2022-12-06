@@ -10,31 +10,27 @@ func TestFuncDef(t *testing.T) {
 	stream, _ := Tokenize("func main(){\nabc := 3\nreturn abc\n}\n")
 	ast, err := Parse(stream)
 	assert.NoError(t, err)
+
 	assert.Equal(
 		t,
-		&FunctionDecl{
-			tok:  &Token{kind: TOKEN_FUNC, value: "func"},
-			name: "main",
-			body: &Block{
-				tok: &Token{kind: TOKEN_LBRACE, value: "{"},
-				body: []Expr{
-					&Assign{
-						tok: &Token{kind: TOKEN_COLONEQUAL, value: ":="},
-						lhs: &Variable{tok: &Token{kind: TOKEN_IDENTIFIER, value: "abc"}, offset: 0},
-						rhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "3"}},
-					},
-					&Return{
-						tok: &Token{kind: TOKEN_RETURN, value: "return"},
-						node: &Identifier{
-							tok:    &Token{kind: TOKEN_IDENTIFIER, value: "abc"},
-							offset: 0,
-						},
+		&Block{
+			tok: &Token{kind: TOKEN_LBRACE, value: "{"},
+			body: []Expr{
+				&Assign{
+					tok: &Token{kind: TOKEN_COLONEQUAL, value: ":="},
+					lhs: &Variable{tok: &Token{kind: TOKEN_IDENTIFIER, value: "abc"}, offset: 0, ty: &TypeUnresolved},
+					rhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "3"}},
+				},
+				&Return{
+					tok: &Token{kind: TOKEN_RETURN, value: "return"},
+					node: &Identifier{
+						tok:      &Token{kind: TOKEN_IDENTIFIER, value: "abc"},
+						variable: nil,
 					},
 				},
-				localEnv: &LocalEnv{variables: map[string]int{"abc": 0}, totalOffset: 16},
 			},
 		},
-		ast.funcs[0],
+		ast.funcs[0].body,
 	)
 }
 
@@ -44,24 +40,19 @@ func TestBool(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(
 		t,
-		ast.funcs[0],
-		&FunctionDecl{
-			tok:  &Token{kind: TOKEN_FUNC, value: "func"},
-			name: "main",
-			body: &Block{
-				tok: &Token{kind: TOKEN_LBRACE, value: "{"},
-				body: []Expr{
-					&Return{
-						tok: &Token{kind: TOKEN_RETURN, value: "return"},
-						node: &BoolLiteral{
-							tok:   &Token{kind: TOKEN_IDENTIFIER, value: "true"},
-							value: true,
-						},
+		&Block{
+			tok: &Token{kind: TOKEN_LBRACE, value: "{"},
+			body: []Expr{
+				&Return{
+					tok: &Token{kind: TOKEN_RETURN, value: "return"},
+					node: &BoolLiteral{
+						tok:   &Token{kind: TOKEN_IDENTIFIER, value: "true"},
+						value: true,
 					},
 				},
-				localEnv: &LocalEnv{variables: map[string]int{}, totalOffset: 0},
 			},
 		},
+		ast.funcs[0].body,
 	)
 }
 
@@ -69,38 +60,46 @@ func TestShortVarDeclAndAdd(t *testing.T) {
 	stream, _ := Tokenize("func main(){\nxy := 1 + 2 + 3\nreturn xy\n}\n")
 	ast, err := Parse(stream)
 	assert.NoError(t, err)
+
 	assert.Equal(
 		t,
-		&FunctionDecl{
-			tok:  &Token{kind: TOKEN_FUNC, value: "func"},
-			name: "main",
-			body: &Block{
-				tok: &Token{kind: TOKEN_LBRACE, value: "{"},
-				body: []Expr{
-					&Assign{
-						tok: &Token{kind: TOKEN_COLONEQUAL, value: ":="},
-						lhs: &Variable{tok: &Token{kind: TOKEN_IDENTIFIER, value: "xy"}, offset: 0},
+		&Block{
+			tok: &Token{kind: TOKEN_LBRACE, value: "{"},
+			body: []Expr{
+				&Assign{
+					tok: &Token{kind: TOKEN_COLONEQUAL, value: ":="},
+					lhs: &Variable{tok: &Token{kind: TOKEN_IDENTIFIER, value: "xy"}, offset: 0, ty: &TypeUnresolved},
+					rhs: &AddOp{
+						tok: &Token{kind: TOKEN_PLUS, value: "+"},
+						lhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "1"}},
 						rhs: &AddOp{
 							tok: &Token{kind: TOKEN_PLUS, value: "+"},
-							lhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "1"}},
-							rhs: &AddOp{
-								tok: &Token{kind: TOKEN_PLUS, value: "+"},
-								lhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "2"}},
-								rhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "3"}},
-							},
-						},
-					},
-					&Return{
-						tok: &Token{kind: TOKEN_RETURN, value: "return"},
-						node: &Identifier{
-							tok:    &Token{kind: TOKEN_IDENTIFIER, value: "xy"},
-							offset: 0,
+							lhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "2"}},
+							rhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "3"}},
 						},
 					},
 				},
-				localEnv: &LocalEnv{variables: map[string]int{"xy": 0}, totalOffset: 16},
+				&Return{
+					tok: &Token{kind: TOKEN_RETURN, value: "return"},
+					node: &Identifier{
+						tok:      &Token{kind: TOKEN_IDENTIFIER, value: "xy"},
+						variable: nil,
+					},
+				},
 			},
 		},
-		ast.funcs[0],
+		ast.funcs[0].body,
 	)
+}
+
+func TestLhsOfShortVarDeclIsNotIdentifier(t *testing.T) {
+	stream, _ := Tokenize("func main(){\n1 := 2\n}\n")
+	_, err := Parse(stream)
+	assert.Error(t, err)
+}
+
+func TestNoNewVariableOnRhsOfShortVarDecl(t *testing.T) {
+	stream, _ := Tokenize("func main(){\nx := 1\nx := 2\n}\n")
+	_, err := Parse(stream)
+	assert.EqualError(t, err, "no new variables on left side of :=")
 }

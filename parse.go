@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 type Ast struct {
 	funcs []*FunctionDecl
@@ -16,19 +19,25 @@ func Parse(tokenStream *TokenStream) (*Ast, error) {
 }
 
 type LocalEnv struct {
-	variables   map[string]int
-	totalOffset int
+	variables map[string]*Variable
 }
 
 func newLocalEnv() *LocalEnv {
-	return &LocalEnv{variables: map[string]int{}, totalOffset: 0}
+	return &LocalEnv{variables: map[string]*Variable{}}
 }
 
-func (env *LocalEnv) insertVariable(name string) int {
-	offset := env.totalOffset
-	env.variables[name] = offset
-	env.totalOffset += 16
-	return offset
+func (env *LocalEnv) Exists(name string) bool {
+	_, exists := env.variables[name]
+	return exists
+}
+
+func (env *LocalEnv) Insert(name string, variable *Variable) {
+	env.variables[name] = variable
+}
+
+func (env *LocalEnv) Get(name string) (*Variable, bool) {
+	variable, exists := env.variables[name]
+	return variable, exists
 }
 
 type parser struct {
@@ -92,8 +101,7 @@ func (parser *parser) topLevelDecl() (*FunctionDecl, error) {
 	if token.kind == TOKEN_FUNC {
 		return parser.functionDecl()
 	} else {
-		fmt.Printf("%v", token)
-		return nil, fmt.Errorf("syntax error: non-declaration statement outside function body")
+		return nil, errors.New("syntax error: non-declaration statement outside function body")
 	}
 }
 
@@ -146,7 +154,7 @@ func (parser *parser) functionDecl() (*FunctionDecl, error) {
 		return nil, err
 	}
 
-	return &FunctionDecl{tok: tokenFunc, name: name, body: body}, nil
+	return &FunctionDecl{tok: tokenFunc, name: name, body: body, localEnv: parser.localEnv}, nil
 }
 
 func (parser *parser) block() (*Block, error) {
@@ -176,12 +184,17 @@ func (parser *parser) block() (*Block, error) {
 		}
 	}
 
-	return &Block{tok: lbraceToken, body: body, localEnv: parser.localEnv}, nil
+	return &Block{tok: lbraceToken, body: body}, nil
 }
 
 func (parser *parser) shortVarDecl(lhs Expr) (Expr, error) {
-	if _, ok := lhs.(*Variable); ok {
-		lhs = parser.newVariable(lhs.(*Variable))
+	if _, ok := lhs.(*Identifier); ok {
+		if !parser.localEnv.Exists(lhs.token().value) {
+			lhs = &Variable{tok: lhs.token(), ty: &TypeUnresolved}
+			parser.localEnv.Insert(lhs.token().value, lhs.(*Variable))
+		} else {
+			return nil, errors.New("no new variables on left side of :=")
+		}
 	} else {
 		err := fmt.Errorf("unexpected %s, expecting variable", lhs.token().value)
 		return nil, err
@@ -194,11 +207,6 @@ func (parser *parser) shortVarDecl(lhs Expr) (Expr, error) {
 	}
 
 	return &Assign{tok: &Token{kind: TOKEN_COLONEQUAL, value: ":="}, lhs: lhs, rhs: rhs}, nil
-}
-
-func (parser *parser) newVariable(identifier *Variable) *Variable {
-	offset := parser.localEnv.insertVariable(identifier.token().value)
-	return &Variable{tok: identifier.token(), offset: offset}
 }
 
 func (parser *parser) addOp() (Expr, error) {
@@ -234,12 +242,8 @@ func (parser *parser) primaryExpr() (Expr, error) {
 			return &BoolLiteral{tok: token, value: false}, nil
 		}
 
-		if offset, ok := parser.localEnv.variables[token.value]; ok {
-			return &Identifier{tok: token, offset: offset}, nil
-		}
-		return &Variable{tok: token}, nil
-	default:
-		err := fmt.Errorf("unexpected %s, expecting primary expression", token.value)
-		return nil, err
+		return &Identifier{tok: token}, nil
 	}
+	err := fmt.Errorf("unexpected %s, expecting primary expression", token.value)
+	return nil, err
 }

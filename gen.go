@@ -25,7 +25,12 @@ func (expr *FunctionDecl) emit() {
 	fmt.Printf(".globl %s\n", name)
 	fmt.Printf("%s:\n", name)
 
-	totalOffset := expr.body.localEnv.totalOffset
+	totalOffset := 0
+	for name, variable := range expr.localEnv.variables {
+		variable.offset = totalOffset
+		fmt.Printf(";offset of %s: %d\n", name, variable.offset)
+		totalOffset += variable.ty.GetSize()
+	}
 	fmt.Printf("\tsub sp, sp, #%d\n", totalOffset)
 	fmt.Println("\tmov x7, sp")
 	expr.body.emit()
@@ -71,7 +76,7 @@ func (expr *Variable) emit() {
 
 func (expr *Identifier) emit() {
 	comment("identifier")
-	fmt.Printf("\tadd x1, x7, #%d\n", expr.offset)
+	fmt.Printf("\tadd x1, x7, #%d\n", expr.variable.offset)
 	fmt.Println("\tldr x0, [x1]")
 	generatePush("x0")
 }
