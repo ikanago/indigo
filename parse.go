@@ -143,7 +143,14 @@ func (parser *parser) signiture() (*Type, error) {
 		return nil, err
 	}
 
-	return parser.parseType()
+	returnType, err := parser.parseType()
+	if err != nil {
+		return nil, err
+	}
+	if returnType != nil && !parser.globalScope.ExistsType(returnType.name) {
+		return nil, fmt.Errorf("undefined: %s", returnType.name)
+	}
+	return returnType, nil
 }
 
 func (parser *parser) parseType() (*Type, error) {

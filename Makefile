@@ -13,3 +13,5 @@ test: indigo test/**/*.go test/**/expected.txt
 
 unittest: indigo *_test.go
 	go test -v
+
+testall: test unittest
