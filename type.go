@@ -9,14 +9,14 @@ type TypeID int
 
 const (
 	TypeIdUnresolved = iota
+	// TypeFunction
 	TypeIdInt
 	TypeIdBool
 )
 
 type Type struct {
-	id TypeID
-	// Size on a memory in bytes.
-	size int
+	id   TypeID
+	size int // Size on a memory in bytes.
 	name string
 }
 
@@ -31,6 +31,15 @@ func (ty *Type) isSameType(other Type) bool {
 func (ty *Type) isUnresolved() bool {
 	return ty.id == TypeIdUnresolved
 }
+
+// func NewFunctionType(returnType *Type) *Type {
+// 	return &Type{
+// 		id:         TypeFunction,
+// 		size:       0,
+// 		name:       fmt.Sprintf("func () %s", returnType.name),
+// 		returnType: returnType,
+// 	}
+// }
 
 var TypeUnresolved = Type{id: TypeIdUnresolved, size: 0}
 var TypeBool = Type{id: TypeIdInt, size: 16, name: "bool"}
@@ -75,9 +84,9 @@ func InferTypeForNode(expr Expr, scope *Scope) (*Type, error) {
 		return returnType, nil
 	case *Return:
 		if node, ok := expr.node.(*Identifier); ok {
-			if variable, ok := scope.GetVariable(node.token().value); !ok {
+			if variable, ok := scope.GetExpr(node.token().value); !ok {
 				return nil, fmt.Errorf("undefined: %s", node.token().value)
-			} else if variable.ty.isUnresolved() {
+			} else if variable := variable.(*Variable); variable.ty.isUnresolved() {
 				return nil, fmt.Errorf("undefined: %s", node.token().value)
 			}
 		}
@@ -88,8 +97,8 @@ func InferTypeForNode(expr Expr, scope *Scope) (*Type, error) {
 			return nil, err
 		}
 		if variable, ok := expr.lhs.(*Variable); ok {
-			if variable, ok := scope.GetVariable(variable.token().value); ok {
-				if variable.ty.isUnresolved() {
+			if variable, ok := scope.GetExpr(variable.token().value); ok {
+				if variable := variable.(*Variable); variable.ty.isUnresolved() {
 					variable.ty = rhsType
 					return rhsType, nil
 				} else {
@@ -113,16 +122,28 @@ func InferTypeForNode(expr Expr, scope *Scope) (*Type, error) {
 		}
 		return lhsType, nil
 	case *Identifier:
-		if variable, ok := scope.GetVariable(expr.token().value); ok {
-			expr.variable = variable
-			return variable.ty, nil
-		} else {
-			return nil, fmt.Errorf("undefined: %s", expr.token().value)
+		if variable, ok := scope.GetExpr(expr.token().value); ok {
+			if variable, ok := variable.(*Variable); ok {
+				expr.variable = variable
+				return variable.ty, nil
+			} else {
+				return nil, fmt.Errorf("unexpected %s, expecting variable", expr.token().value)
+			}
 		}
+		return nil, fmt.Errorf("undefined: %s", expr.token().value)
 	case *IntLiteral:
 		return &TypeInt, nil
 	case *BoolLiteral:
 		return &TypeBool, nil
+	case *FunctionCall:
+		if node, ok := scope.GetExpr(expr.token().value); ok {
+			if function, ok := node.(*FunctionDecl); ok {
+				expr.function = function
+				return function.returnType, nil
+			}
+			return nil, fmt.Errorf("invalid operation: cannot call non-function %s", expr.token().value)
+		}
+		return nil, fmt.Errorf("undefined: %s", expr.token().value)
 	}
 	return nil, nil
 }

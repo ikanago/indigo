@@ -1,33 +1,41 @@
 package main
 
 type Scope struct {
-	variables map[string]*Variable
-	types     map[string]*Type
+	exprs map[string]Expr  // key: name, value: corresponding `Expr` in the AST
+	types map[string]*Type // key: name, value: defined type
+	outer *Scope
 }
 
-func newScope() *Scope {
-	return &Scope{variables: map[string]*Variable{}, types: map[string]*Type{}}
+func NewScope(outer *Scope) *Scope {
+	return &Scope{exprs: map[string]Expr{}, types: map[string]*Type{}, outer: outer}
 }
 
-func newGlobalScope() *Scope {
+func NewGlobalScope() *Scope {
 	return &Scope{
-		variables: map[string]*Variable{},
-		types:     map[string]*Type{"int": &TypeInt, "bool": &TypeBool},
+		exprs: map[string]Expr{},
+		types: map[string]*Type{"int": &TypeInt, "bool": &TypeBool},
+		outer: nil,
 	}
 }
 
-func (scope *Scope) ExistsVariable(name string) bool {
-	_, exists := scope.variables[name]
+func (scope *Scope) ExistsExpr(name string) bool {
+	_, exists := scope.GetExpr(name)
 	return exists
 }
 
-func (scope *Scope) InsertVariable(name string, variable *Variable) {
-	scope.variables[name] = variable
+func (scope *Scope) InsertExpr(name string, expr Expr) {
+	scope.exprs[name] = expr
 }
 
-func (scope *Scope) GetVariable(name string) (*Variable, bool) {
-	variable, exists := scope.variables[name]
-	return variable, exists
+func (scope *Scope) GetExpr(name string) (Expr, bool) {
+	expr, ok := scope.exprs[name]
+	if ok {
+		return expr, ok
+	}
+	if scope.outer != nil {
+		return scope.outer.GetExpr(name)
+	}
+	return nil, false
 }
 
 func (scope *Scope) ExistsType(name string) bool {
@@ -40,6 +48,12 @@ func (scope *Scope) InsertType(name string, ty *Type) {
 }
 
 func (scope *Scope) GetType(name string) (*Type, bool) {
-	ty, exists := scope.types[name]
-	return ty, exists
+	ty, ok := scope.types[name]
+	if ok {
+		return ty, ok
+	}
+	if scope.outer != nil {
+		return scope.outer.GetType(name)
+	}
+	return nil, false
 }

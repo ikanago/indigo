@@ -60,6 +60,11 @@ type BoolLiteral struct {
 	value bool
 }
 
+type FunctionCall struct {
+	tok      *Token
+	function *FunctionDecl
+}
+
 func (node *FunctionDecl) token() *Token { return node.tok }
 func (node *Block) token() *Token        { return node.tok }
 func (node *Return) token() *Token       { return node.tok }
@@ -69,3 +74,4 @@ func (node *Variable) token() *Token     { return node.tok }
 func (node *Identifier) token() *Token   { return node.tok }
 func (node *IntLiteral) token() *Token   { return node.tok }
 func (node *BoolLiteral) token() *Token  { return node.tok }
+func (node *FunctionCall) token() *Token { return node.tok }

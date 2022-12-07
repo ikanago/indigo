@@ -28,7 +28,7 @@ func makeParser(tokenStream *TokenStream) *parser {
 	return &parser{
 		tokenStream: tokenStream,
 		localScope:  nil,
-		globalScope: newGlobalScope(),
+		globalScope: NewGlobalScope(),
 	}
 }
 
@@ -81,7 +81,7 @@ func (parser *parser) topLevelDecl() (*FunctionDecl, error) {
 	if token.kind == TOKEN_FUNC {
 		return parser.functionDecl()
 	} else {
-		return nil, errors.New("syntax error: non-declaration statement outside function body")
+		return nil, fmt.Errorf("syntax error: non-declaration statement outside function body: %s", token.value)
 	}
 }
 
@@ -131,7 +131,9 @@ func (parser *parser) functionDecl() (*FunctionDecl, error) {
 		return nil, err
 	}
 
-	return &FunctionDecl{tok: tokenFunc, name: name, returnType: returnType, body: body, scope: parser.localScope}, nil
+	function := &FunctionDecl{tok: tokenFunc, name: name, returnType: returnType, body: body, scope: parser.localScope}
+	parser.globalScope.InsertExpr(name, function)
+	return function, nil
 }
 
 func (parser *parser) signiture() (*Type, error) {
@@ -173,7 +175,7 @@ func (parser *parser) block() (*Block, error) {
 		return nil, err
 	}
 
-	parser.localScope = newScope()
+	parser.localScope = NewScope(parser.globalScope)
 	var body []Expr
 	for {
 		if parser.peek().kind == TOKEN_RBRACE {
@@ -189,6 +191,7 @@ func (parser *parser) block() (*Block, error) {
 			return nil, err
 		}
 		body = append(body, node)
+		// TODO: Semicolon can be omitted after } for one-line function definition.
 		if err := parser.consumeString(";"); err != nil {
 			return nil, err
 		}
@@ -199,9 +202,9 @@ func (parser *parser) block() (*Block, error) {
 
 func (parser *parser) shortVarDecl(lhs Expr) (Expr, error) {
 	if _, ok := lhs.(*Identifier); ok {
-		if !parser.localScope.ExistsVariable(lhs.token().value) {
+		if !parser.localScope.ExistsExpr(lhs.token().value) {
 			lhs = &Variable{tok: lhs.token(), ty: &TypeUnresolved}
-			parser.localScope.InsertVariable(lhs.token().value, lhs.(*Variable))
+			parser.localScope.InsertExpr(lhs.token().value, lhs.(*Variable))
 		} else {
 			return nil, errors.New("no new variables on left side of :=")
 		}
@@ -252,8 +255,22 @@ func (parser *parser) primaryExpr() (Expr, error) {
 			return &BoolLiteral{tok: token, value: false}, nil
 		}
 
+		if parser.peek().kind == TOKEN_LPAREN {
+			return parser.functionCall(token)
+		}
+
 		return &Identifier{tok: token}, nil
 	}
 	err := fmt.Errorf("unexpected %s, expecting primary expression", token.value)
 	return nil, err
+}
+
+func (parser *parser) functionCall(token *Token) (Expr, error) {
+	if err := parser.consumeString("("); err != nil {
+		return nil, err
+	}
+	if err := parser.consumeString(")"); err != nil {
+		return nil, err
+	}
+	return &FunctionCall{tok: token}, nil
 }

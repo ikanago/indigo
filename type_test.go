@@ -30,6 +30,22 @@ func TestResolveAdd(t *testing.T) {
 	assert.Equal(t, &TypeInt, assign.lhs.(*Variable).ty)
 }
 
+func TestCallFunction(t *testing.T) {
+	stream, _ := Tokenize("func main() int {\nx := f() + 1 \nreturn x\n}\n func f() int {\nreturn 2\n}\n")
+	ast, err := Parse(stream)
+	assert.NoError(t, err)
+	err = ast.InferType()
+	assert.NoError(t, err)
+
+	assign := ast.funcs[0].body.body[0].(*Assign)
+	assert.Equal(t, &TypeInt, assign.lhs.(*Variable).ty)
+	fuctionCall := assign.rhs.(*AddOp).lhs.(*FunctionCall)
+	assert.Equal(t, &TypeInt, fuctionCall.function.returnType)
+
+	x, _ := ast.funcs[0].scope.GetExpr("x")
+	assert.Equal(t, 0, x.(*Variable).offset)
+}
+
 func TestReturnUndefinedVariable(t *testing.T) {
 	stream, _ := Tokenize("func main() int {\nreturn abc\n}\n")
 	ast, err := Parse(stream)

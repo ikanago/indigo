@@ -34,6 +34,47 @@ func TestFuncDef(t *testing.T) {
 	)
 }
 
+func TestCallFunc(t *testing.T) {
+	stream, _ := Tokenize("func main() int{\n x := f()\nreturn x\n}\nfunc f() int {\nreturn 3\n}\n")
+	ast, err := Parse(stream)
+	assert.NoError(t, err)
+	assert.Equal(t, &TypeInt, ast.funcs[0].returnType)
+	assert.Equal(
+		t,
+		&Block{
+			tok: &Token{kind: TOKEN_LBRACE, value: "{"},
+			body: []Expr{
+				&Assign{
+					tok: &Token{kind: TOKEN_COLONEQUAL, value: ":="},
+					lhs: &Variable{tok: &Token{kind: TOKEN_IDENTIFIER, value: "x"}, offset: 0, ty: &TypeUnresolved},
+					rhs: &FunctionCall{tok: &Token{kind: TOKEN_IDENTIFIER, value: "f"}},
+				},
+				&Return{
+					tok:  &Token{kind: TOKEN_RETURN, value: "return"},
+					node: &Identifier{tok: &Token{kind: TOKEN_IDENTIFIER, value: "x"}},
+				},
+			},
+		},
+		ast.funcs[0].body,
+	)
+	assert.Equal(t, &TypeInt, ast.funcs[1].returnType)
+	assert.Equal(
+		t,
+		&Block{
+			tok: &Token{kind: TOKEN_LBRACE, value: "{"},
+			body: []Expr{
+				&Return{
+					tok: &Token{kind: TOKEN_RETURN, value: "return"},
+					node: &IntLiteral{
+						tok: &Token{kind: TOKEN_INT, value: "3"},
+					},
+				},
+			},
+		},
+		ast.funcs[1].body,
+	)
+}
+
 func TestFuncReturnType(t *testing.T) {
 	stream, _ := Tokenize("func f() int {\nreturn 3\n}\n")
 	ast, err := Parse(stream)
