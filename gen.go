@@ -2,13 +2,14 @@ package main
 
 import (
 	"fmt"
-	"os"
 )
+
+const fp = "x29"
 
 func Generate(ast *Ast) {
 	fmt.Println(".arch armv8-a")
 	fmt.Println(".text")
-	fmt.Println(".align	2")
+	fmt.Println(".align 2")
 	for _, node := range ast.funcs {
 		node.emit()
 	}
@@ -29,7 +30,7 @@ func (expr *FunctionDecl) emit() {
 	fmt.Printf(".globl %s\n", name)
 	fmt.Printf("%s:\n", name)
 
-	generatePush("x29")
+	save_frame_pointer_and_link_register()
 
 	totalOffset := 0
 	for name, expr := range expr.scope.exprs {
@@ -40,11 +41,19 @@ func (expr *FunctionDecl) emit() {
 		}
 	}
 	fmt.Printf("\tsub sp, sp, #%d\n", totalOffset)
-	fmt.Println("\tmov x29, sp")
+	fmt.Printf("\tmov %s, sp\n", fp)
 	expr.body.emit()
 	fmt.Printf("\tadd sp, sp, #%d\n", totalOffset)
-	generatePop("x29")
+	restore_frame_pointer_and_link_register()
 	fmt.Println("\tret")
+}
+
+func save_frame_pointer_and_link_register() {
+	fmt.Printf("\tstp %s, x30, [sp, -32]!\n", fp)
+}
+
+func restore_frame_pointer_and_link_register() {
+	fmt.Printf("\tldp %s, x30, [sp], 32\n", fp)
 }
 
 func (expr *Block) emit() {
@@ -79,13 +88,13 @@ func (expr *AddOp) emit() {
 
 func (expr *Variable) emit() {
 	comment("variable")
-	fmt.Printf("\tadd x0, x29, #%d\n", expr.offset)
+	fmt.Printf("\tadd x0, %s, #%d\n", fp, expr.offset)
 	generatePush("x0")
 }
 
 func (expr *Identifier) emit() {
 	comment("identifier")
-	fmt.Printf("\tadd x1, x29, #%d\n", expr.variable.offset)
+	fmt.Printf("\tadd x1, %s, #%d\n", fp, expr.variable.offset)
 	fmt.Println("\tldr x0, [x1]")
 	generatePush("x0")
 }
@@ -108,9 +117,7 @@ func (expr *BoolLiteral) emit() {
 
 func (expr *FunctionCall) emit() {
 	comment("function call")
-	generatePush("x30")
 	fmt.Printf("\tbl %s\n", expr.function.name)
-	generatePop("x30")
 	generatePush("x0")
 	comment("function call end")
 }
