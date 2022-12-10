@@ -10,6 +10,7 @@ type Expr interface {
 type FunctionDecl struct {
 	tok        *Token
 	name       string
+	parameters []*Variable
 	returnType *Type
 	body       *Block
 	scope      *Scope

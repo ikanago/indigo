@@ -111,6 +111,8 @@ func (parser *parser) stmt() (Expr, error) {
 }
 
 func (parser *parser) functionDecl() (*FunctionDecl, error) {
+	parser.localScope = NewScope(parser.globalScope)
+
 	tokenFunc, _ := parser.expectString("func")
 
 	token := parser.peek()
@@ -121,7 +123,7 @@ func (parser *parser) functionDecl() (*FunctionDecl, error) {
 	name := token.value
 	parser.skip()
 
-	returnType, err := parser.signiture()
+	parameters, returnType, err := parser.signiture()
 	if err != nil {
 		return nil, err
 	}
@@ -131,28 +133,77 @@ func (parser *parser) functionDecl() (*FunctionDecl, error) {
 		return nil, err
 	}
 
-	function := &FunctionDecl{tok: tokenFunc, name: name, returnType: returnType, body: body, scope: parser.localScope}
+	function := &FunctionDecl{
+		tok:        tokenFunc,
+		name:       name,
+		parameters: parameters,
+		returnType: returnType,
+		body:       body,
+		scope:      parser.localScope,
+	}
 	parser.globalScope.InsertExpr(name, function)
 	return function, nil
 }
 
-func (parser *parser) signiture() (*Type, error) {
+func (parser *parser) signiture() ([]*Variable, *Type, error) {
 	if err := parser.consumeString("("); err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+
+	parameters := []*Variable{}
+	if parser.peek().kind != TOKEN_RPAREN {
+		if parameter, err := parser.parameterDecl(); err != nil {
+			return nil, nil, err
+		} else {
+			parameters = append(parameters, parameter)
+		}
+		println("hoge")
+		for {
+			if parser.peek().kind == TOKEN_RPAREN {
+				break
+			}
+			if err := parser.consumeString(","); err != nil {
+				return nil, nil, err
+			}
+			if parameter, err := parser.parameterDecl(); err != nil {
+				return nil, nil, err
+			} else {
+				parameters = append(parameters, parameter)
+			}
+		}
 	}
 
 	if err := parser.consumeString(")"); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	returnType, err := parser.parseType()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if returnType != nil && !parser.globalScope.ExistsType(returnType.name) {
-		return nil, fmt.Errorf("undefined: %s", returnType.name)
+		return nil, nil, fmt.Errorf("undefined: %s", returnType.name)
 	}
-	return returnType, nil
+	return parameters, returnType, nil
+}
+
+func (parser *parser) parameterDecl() (*Variable, error) {
+	parameterToken := parser.peek()
+	if parameterToken.kind == TOKEN_IDENTIFIER {
+		parser.skip()
+		ty, err := parser.parseType()
+		if err != nil {
+			return nil, err
+		}
+		parameter := &Variable{tok: parameterToken, ty: ty}
+		name := parameterToken.value
+		if parser.localScope.ExistsExpr(name) {
+			return nil, fmt.Errorf("%s redeclared in this block", name)
+		}
+		parser.localScope.InsertExpr(name, parameter)
+		return parameter, nil
+	}
+	return nil, fmt.Errorf("unexpected %s, expected )", parameterToken.value)
 }
 
 func (parser *parser) parseType() (*Type, error) {
@@ -175,7 +226,6 @@ func (parser *parser) block() (*Block, error) {
 		return nil, err
 	}
 
-	parser.localScope = NewScope(parser.globalScope)
 	var body []Expr
 	for {
 		if parser.peek().kind == TOKEN_RBRACE {

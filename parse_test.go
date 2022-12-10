@@ -97,6 +97,65 @@ func TestFuncReturnType(t *testing.T) {
 	)
 }
 
+func TestFuncWithOneArg(t *testing.T) {
+	stream, _ := Tokenize("func f(a int) int {\nreturn a\n}\n")
+	ast, err := Parse(stream)
+	assert.NoError(t, err)
+	assert.Equal(
+		t,
+		[]*Variable{
+			{tok: &Token{kind: TOKEN_IDENTIFIER, value: "a"}, offset: 0, ty: &TypeInt},
+		},
+		ast.funcs[0].parameters,
+	)
+	assert.Equal(t, &TypeInt, ast.funcs[0].returnType)
+	assert.Equal(
+		t,
+		&Block{
+			tok: &Token{kind: TOKEN_LBRACE, value: "{"},
+			body: []Expr{
+				&Return{
+					tok: &Token{kind: TOKEN_RETURN, value: "return"},
+					node: &Identifier{tok: &Token{kind: TOKEN_IDENTIFIER, value: "a"}},
+				},
+			},
+		},
+		ast.funcs[0].body,
+	)
+}
+
+func TestFuncWithArgs(t *testing.T) {
+	stream, _ := Tokenize("func f(a int, b int) int {\nreturn a + b\n}\n")
+	ast, err := Parse(stream)
+	assert.NoError(t, err)
+	assert.Equal(
+		t,
+		[]*Variable{
+			{tok: &Token{kind: TOKEN_IDENTIFIER, value: "a"}, offset: 0, ty: &TypeInt},
+			{tok: &Token{kind: TOKEN_IDENTIFIER, value: "b"}, offset: 0, ty: &TypeInt},
+		},
+		ast.funcs[0].parameters,
+	)
+	assert.Equal(t, &TypeInt, ast.funcs[0].returnType)
+	assert.Equal(
+		t,
+		&Block{
+			tok: &Token{kind: TOKEN_LBRACE, value: "{"},
+			body: []Expr{
+				&Return{
+					tok: &Token{kind: TOKEN_RETURN, value: "return"},
+					node: &AddOp{
+						tok: &Token{kind: TOKEN_PLUS, value: "+"},
+						lhs: &Identifier{tok: &Token{kind: TOKEN_IDENTIFIER, value: "a"}},
+						rhs: &Identifier{tok: &Token{kind: TOKEN_IDENTIFIER, value: "b"}},
+					},
+				},
+			},
+		},
+		ast.funcs[0].body,
+	)
+}
+
 func TestBool(t *testing.T) {
 	stream, _ := Tokenize("func main(){\nreturn true\n}\n")
 	ast, err := Parse(stream)

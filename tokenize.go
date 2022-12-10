@@ -15,6 +15,7 @@ const (
 	TOKEN_PLUS
 	TOKEN_SEMICOLON
 	TOKEN_COLONEQUAL
+	TOKEN_COMMA
 	// Keywords
 	TOKEN_FUNC
 	TOKEN_RETURN
@@ -90,6 +91,11 @@ func Tokenize(source string) (*TokenStream, error) {
 			token := Token{kind: TOKEN_COLONEQUAL, value: ":="}
 			tokens = append(tokens, token)
 			current += 2
+		} else if currentByte == ',' {
+			symbol := source[current:(current + 1)]
+			token := Token{kind: TOKEN_COMMA, value: symbol}
+			tokens = append(tokens, token)
+			current += len(symbol)
 		} else if isDigit(currentByte) {
 			digits := readDigit(source, current)
 			token := Token{kind: TOKEN_INT, value: digits}
