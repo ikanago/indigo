@@ -62,8 +62,9 @@ type BoolLiteral struct {
 }
 
 type FunctionCall struct {
-	tok      *Token
-	function *FunctionDecl
+	tok       *Token
+	function  *FunctionDecl
+	arguments []Expr
 }
 
 func (node *FunctionDecl) token() *Token { return node.tok }

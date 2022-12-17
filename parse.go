@@ -157,7 +157,6 @@ func (parser *parser) signiture() ([]*Variable, *Type, error) {
 		} else {
 			parameters = append(parameters, parameter)
 		}
-		println("hoge")
 		for {
 			if parser.peek().kind == TOKEN_RPAREN {
 				break
@@ -319,8 +318,29 @@ func (parser *parser) functionCall(token *Token) (Expr, error) {
 	if err := parser.consumeString("("); err != nil {
 		return nil, err
 	}
+	arguments := []Expr{}
+	if parser.peek().kind != TOKEN_RPAREN {
+		if argument, err := parser.addOp(); err != nil {
+			return nil, err
+		} else {
+			arguments = append(arguments, argument)
+		}
+		for {
+			if parser.peek().kind == TOKEN_RPAREN {
+				break
+			}
+			if err := parser.consumeString(","); err != nil {
+				return nil, err
+			}
+			if argument, err := parser.addOp(); err != nil {
+				return nil, err
+			} else {
+				arguments = append(arguments, argument)
+			}
+		}
+	}
 	if err := parser.consumeString(")"); err != nil {
 		return nil, err
 	}
-	return &FunctionCall{tok: token}, nil
+	return &FunctionCall{tok: token, arguments: arguments}, nil
 }
