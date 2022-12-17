@@ -53,18 +53,19 @@ func (ast *Ast) InferType() error {
 func InferTypeForNode(expr Expr, scope *Scope) (*Type, error) {
 	switch expr := expr.(type) {
 	case *FunctionDecl:
-		if returnType, err := InferTypeForNode(expr.body, scope); err != nil {
+		returnType, err := InferTypeForNode(expr.body, scope)
+		if err != nil {
 			return nil, err
-		} else {
-			if returnType == nil && expr.returnType != nil {
-				return nil, fmt.Errorf("not enough return values\n\thave: ()\n\twant: (%s)", expr.returnType.name)
-			}
-			if returnType != nil && expr.returnType == nil {
-				return nil, fmt.Errorf("too many return values\n\thave: (%s)\n\twant: ()", returnType.name)
-			}
-			if returnType != expr.returnType {
-				return nil, fmt.Errorf("cannot use %s as %s in return statement", returnType.name, expr.returnType.name)
-			}
+		}
+		actualType := expr.returnType
+		if returnType == nil && actualType != nil {
+			return nil, fmt.Errorf("not enough return values\n\thave: ()\n\twant: (%s)", actualType.name)
+		}
+		if returnType != nil && actualType == nil {
+			return nil, fmt.Errorf("too many return values\n\thave: (%s)\n\twant: ()", returnType.name)
+		}
+		if returnType != actualType {
+			return nil, fmt.Errorf("cannot use %s as %s in return statement", returnType.name, actualType.name)
 		}
 	case *Block:
 		var returnType *Type
@@ -78,10 +79,10 @@ func InferTypeForNode(expr Expr, scope *Scope) (*Type, error) {
 		return returnType, nil
 	case *Return:
 		if node, ok := expr.node.(*Identifier); ok {
-			if variable, ok := scope.GetExpr(node.token().value); !ok {
-				return nil, fmt.Errorf("undefined: %s", node.token().value)
+			if variable, ok := scope.GetExpr(node.Name()); !ok {
+				return nil, fmt.Errorf("undefined: %s", node.Name())
 			} else if variable := variable.(*Variable); variable.ty.isUnresolved() {
-				return nil, fmt.Errorf("undefined: %s", node.token().value)
+				return nil, fmt.Errorf("undefined: %s", node.Name())
 			}
 		}
 		return InferTypeForNode(expr.node, scope)
@@ -90,17 +91,17 @@ func InferTypeForNode(expr Expr, scope *Scope) (*Type, error) {
 		if err != nil {
 			return nil, err
 		}
-		if variable, ok := expr.lhs.(*Variable); ok {
-			if variable, ok := scope.GetExpr(variable.token().value); ok {
-				if variable := variable.(*Variable); variable.ty.isUnresolved() {
-					variable.ty = rhsType
-					return rhsType, nil
-				} else {
-					return nil, errors.New("no new variables on left side of :=")
-				}
-			}
-		} else {
+		variable, ok := expr.lhs.(*Variable)
+		if !ok {
 			return nil, errors.New("non-name on left side of :=")
+		}
+		if variable, ok := scope.GetExpr(variable.Name()); ok {
+			if variable := variable.(*Variable); variable.ty.isUnresolved() {
+				variable.ty = rhsType
+				return rhsType, nil
+			} else {
+				return nil, errors.New("no new variables on left side of :=")
+			}
 		}
 	case *AddOp:
 		lhsType, err := InferTypeForNode(expr.lhs, scope)
@@ -116,28 +117,29 @@ func InferTypeForNode(expr Expr, scope *Scope) (*Type, error) {
 		}
 		return lhsType, nil
 	case *Identifier:
-		if variable, ok := scope.GetExpr(expr.token().value); ok {
-			if variable, ok := variable.(*Variable); ok {
-				expr.variable = variable
-				return variable.ty, nil
-			} else {
-				return nil, fmt.Errorf("unexpected %s, expecting variable", expr.token().value)
-			}
+		variable, ok := scope.GetExpr(expr.Name())
+		if !ok {
+			return nil, fmt.Errorf("undefined: %s", expr.Name())
 		}
-		return nil, fmt.Errorf("undefined: %s", expr.token().value)
+		if variable, ok := variable.(*Variable); ok {
+			expr.variable = variable
+			return variable.ty, nil
+		}
+		return nil, fmt.Errorf("unexpected %s, expecting variable", expr.Name())
 	case *IntLiteral:
 		return &TypeInt, nil
 	case *BoolLiteral:
 		return &TypeBool, nil
 	case *FunctionCall:
-		if node, ok := scope.GetExpr(expr.token().value); ok {
-			if function, ok := node.(*FunctionDecl); ok {
-				expr.function = function
-				return function.returnType, nil
-			}
-			return nil, fmt.Errorf("invalid operation: cannot call non-function %s", expr.token().value)
+		node, ok := scope.GetExpr(expr.Name())
+		if !ok {
+			return nil, fmt.Errorf("undefined: %s", expr.Name())
 		}
-		return nil, fmt.Errorf("undefined: %s", expr.token().value)
+		if function, ok := node.(*FunctionDecl); ok {
+			expr.function = function
+			return function.returnType, nil
+		}
+		return nil, fmt.Errorf("invalid operation: cannot call non-function %s", expr.Name())
 	}
 	return nil, nil
 }

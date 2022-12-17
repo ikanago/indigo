@@ -58,22 +58,22 @@ func (parser *parser) consumeString(expected string) error {
 }
 
 func (parser *parser) parse() (*Ast, error) {
-	var funcs []*FunctionDecl
+	var functions []*FunctionDecl
 	for {
 		if parser.peek().kind == TOKEN_EOF {
 			break
 		}
 
-		f, err := parser.topLevelDecl()
+		function, err := parser.topLevelDecl()
 		if err != nil {
 			return nil, err
 		}
 		if err := parser.consumeString(";"); err != nil {
 			return nil, err
 		}
-		funcs = append(funcs, f)
+		functions = append(functions, function)
 	}
-	return &Ast{funcs}, nil
+	return &Ast{functions}, nil
 }
 
 func (parser *parser) topLevelDecl() (*FunctionDecl, error) {
@@ -250,17 +250,16 @@ func (parser *parser) block() (*Block, error) {
 }
 
 func (parser *parser) shortVarDecl(lhs Expr) (Expr, error) {
-	if _, ok := lhs.(*Identifier); ok {
-		if !parser.localScope.ExistsExpr(lhs.token().value) {
-			lhs = &Variable{tok: lhs.token(), ty: &TypeUnresolved}
-			parser.localScope.InsertExpr(lhs.token().value, lhs.(*Variable))
-		} else {
-			return nil, errors.New("no new variables on left side of :=")
-		}
-	} else {
+	if _, ok := lhs.(*Identifier); !ok {
 		err := fmt.Errorf("unexpected %s, expecting variable", lhs.token().value)
 		return nil, err
 	}
+
+	lhsVar := &Variable{tok: lhs.token(), ty: &TypeUnresolved}
+	if parser.localScope.ExistsExpr(lhsVar.Name()) {
+		return nil, errors.New("no new variables on left side of :=")
+	}
+	parser.localScope.InsertExpr(lhsVar.Name(), lhsVar)
 
 	parser.consumeString(":=")
 	rhs, err := parser.addOp()
@@ -268,7 +267,7 @@ func (parser *parser) shortVarDecl(lhs Expr) (Expr, error) {
 		return nil, err
 	}
 
-	return &Assign{tok: &Token{kind: TOKEN_COLONEQUAL, value: ":="}, lhs: lhs, rhs: rhs}, nil
+	return &Assign{tok: &Token{kind: TOKEN_COLONEQUAL, value: ":="}, lhs: lhsVar, rhs: rhs}, nil
 }
 
 func (parser *parser) addOp() (Expr, error) {
@@ -278,14 +277,15 @@ func (parser *parser) addOp() (Expr, error) {
 	}
 
 	token := parser.peek()
-	if token.kind == TOKEN_PLUS {
+	switch token.kind {
+	case TOKEN_PLUS:
 		parser.skip()
 		rhs, err := parser.addOp()
 		if err != nil {
 			return nil, err
 		}
 		return &AddOp{tok: token, lhs: lhs, rhs: rhs}, nil
-	} else {
+	default:
 		return lhs, nil
 	}
 }
@@ -310,8 +310,7 @@ func (parser *parser) primaryExpr() (Expr, error) {
 
 		return &Identifier{tok: token}, nil
 	}
-	err := fmt.Errorf("unexpected %s, expecting primary expression", token.value)
-	return nil, err
+	return nil, fmt.Errorf("unexpected %s, expecting primary expression", token.value)
 }
 
 func (parser *parser) functionCall(token *Token) (Expr, error) {

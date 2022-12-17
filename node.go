@@ -77,3 +77,15 @@ func (node *Identifier) token() *Token   { return node.tok }
 func (node *IntLiteral) token() *Token   { return node.tok }
 func (node *BoolLiteral) token() *Token  { return node.tok }
 func (node *FunctionCall) token() *Token { return node.tok }
+
+func (node *FunctionCall) Name() string {
+	return node.token().value
+}
+
+func (node *Variable) Name() string {
+	return node.token().value
+}
+
+func (node *Identifier) Name() string {
+	return node.token().value
+}
