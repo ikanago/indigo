@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestResolveVariable(t *testing.T) {
+func TestTypeResolveVariable(t *testing.T) {
 	stream, _ := Tokenize("func main() int {\nx := 1\nreturn x\n}\n")
 	ast, err := Parse(stream)
 	assert.NoError(t, err)
@@ -19,7 +19,7 @@ func TestResolveVariable(t *testing.T) {
 	assert.Equal(t, &TypeInt, ret.node.(*Identifier).variable.ty)
 }
 
-func TestResolveAdd(t *testing.T) {
+func TestTypeResolveAdd(t *testing.T) {
 	stream, _ := Tokenize("func main() int {\nx := 1 \nreturn x\n}\n")
 	ast, err := Parse(stream)
 	assert.NoError(t, err)
@@ -30,7 +30,7 @@ func TestResolveAdd(t *testing.T) {
 	assert.Equal(t, &TypeInt, assign.lhs.(*Variable).ty)
 }
 
-func TestCallFunction(t *testing.T) {
+func TestTypeCallFunctionWithoutArgument(t *testing.T) {
 	stream, _ := Tokenize("func main() int {\nx := f() + 1 \nreturn x\n}\n func f() int {\nreturn 2\n}\n")
 	ast, err := Parse(stream)
 	assert.NoError(t, err)
@@ -42,8 +42,21 @@ func TestCallFunction(t *testing.T) {
 	fuctionCall := assign.rhs.(*AddOp).lhs.(*FunctionCall)
 	assert.Equal(t, &TypeInt, fuctionCall.function.returnType)
 
-	x, _ := ast.funcs[0].scope.GetExpr("x")
+	x, ok := ast.funcs[0].scope.GetExpr("x")
+	assert.True(t, ok)
 	assert.Equal(t, 0, x.(*Variable).offset)
+}
+
+func TestTypeCallFunctionWithArgument(t *testing.T) {
+	stream, _ := Tokenize("func main() int {\nx := f(1)\nreturn x\n}\nfunc f(a int) int {\nreturn a\n}\n")
+	ast, err := Parse(stream)
+	assert.NoError(t, err)
+	err = ast.InferType()
+	assert.NoError(t, err)
+
+	a, ok := ast.funcs[1].scope.GetExpr("a")
+	assert.True(t, ok)
+	assert.Equal(t, 0, a.(*Variable).offset)
 }
 
 func TestReturnUndefinedVariable(t *testing.T) {
@@ -80,6 +93,15 @@ func TestDiffentReturnType(t *testing.T) {
 
 func TestDifferentTypeAdd(t *testing.T) {
 	stream, _ := Tokenize("func main() int {\nreturn 1 + true\n}\n")
+	ast, err := Parse(stream)
+	assert.NoError(t, err)
+	err = ast.InferType()
+	assert.EqualError(t, err, "invalid operation: adding different types")
+}
+
+func TestAddingNil(t *testing.T) {
+	// `returnType` node of `f` is nil because of its declaration.
+	stream, _ := Tokenize("func main() int {\nreturn 1 + f(1, 2)\n}\nfunc f(x int, y int) {\nz := x + y\nreturn z\n}\n")
 	ast, err := Parse(stream)
 	assert.NoError(t, err)
 	err = ast.InferType()

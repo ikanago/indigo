@@ -40,8 +40,13 @@ func (expr *FunctionDecl) emit() {
 			totalOffset += variable.ty.GetSize()
 		}
 	}
+
 	fmt.Printf("\tsub sp, sp, #%d\n", totalOffset)
 	fmt.Printf("\tmov %s, sp\n", fp)
+
+	for i, parameter := range expr.parameters {
+		fmt.Printf("\tstr x%d, [%s, #%d]\n", i, fp, parameter.offset)
+	}
 	expr.body.emit()
 	fmt.Printf("\tadd sp, sp, #%d\n", totalOffset)
 	restore_frame_pointer_and_link_register()
@@ -117,6 +122,11 @@ func (expr *BoolLiteral) emit() {
 
 func (expr *FunctionCall) emit() {
 	comment("function call")
+	for i := len(expr.arguments) - 1; i >= 0; i-- {
+		expr.arguments[i].emit()
+		generatePop("x0")
+		fmt.Printf("\tmov x%d, x0\n", i)
+	}
 	fmt.Printf("\tbl %s\n", expr.function.name)
 	generatePush("x0")
 	comment("function call end")

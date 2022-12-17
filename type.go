@@ -24,22 +24,16 @@ func (ty *Type) GetSize() int {
 	return ty.size
 }
 
-func (ty *Type) isSameType(other Type) bool {
+func isSameType(ty *Type, other *Type) bool {
+	if ty == nil || other == nil {
+		return false
+	}
 	return ty.id == other.id
 }
 
 func (ty *Type) isUnresolved() bool {
 	return ty.id == TypeIdUnresolved
 }
-
-// func NewFunctionType(returnType *Type) *Type {
-// 	return &Type{
-// 		id:         TypeFunction,
-// 		size:       0,
-// 		name:       fmt.Sprintf("func () %s", returnType.name),
-// 		returnType: returnType,
-// 	}
-// }
 
 var TypeUnresolved = Type{id: TypeIdUnresolved, size: 0}
 var TypeBool = Type{id: TypeIdInt, size: 16, name: "bool"}
@@ -117,7 +111,7 @@ func InferTypeForNode(expr Expr, scope *Scope) (*Type, error) {
 		if err != nil {
 			return nil, err
 		}
-		if !lhsType.isSameType(*rhsType) {
+		if !isSameType(lhsType, rhsType) {
 			return nil, errors.New("invalid operation: adding different types")
 		}
 		return lhsType, nil
