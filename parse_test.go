@@ -3,247 +3,279 @@ package main
 import (
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/assert"
 )
+
+var opts = []cmp.Option{
+	cmpopts.IgnoreUnexported(FunctionDecl{}),
+	cmpopts.IgnoreUnexported(Block{}),
+	cmpopts.IgnoreUnexported(Return{}),
+	cmpopts.IgnoreUnexported(Assign{}),
+	cmpopts.IgnoreUnexported(AddOp{}),
+	cmpopts.IgnoreUnexported(Variable{}),
+	cmpopts.IgnoreUnexported(Identifier{}),
+	cmpopts.IgnoreUnexported(IntLiteral{}),
+	cmpopts.IgnoreUnexported(BoolLiteral{}),
+	cmpopts.IgnoreUnexported(FunctionCall{}),
+}
 
 func TestFuncDef(t *testing.T) {
 	stream, _ := Tokenize("func main(){\nabc := 3\nreturn abc\n}\n")
 	ast, err := Parse(stream)
 	assert.NoError(t, err)
 
-	assert.Equal(
-		t,
+	d := cmp.Diff(
 		&Block{
-			tok: &Token{kind: TOKEN_LBRACE, value: "{"},
-			body: []Expr{
+			Body: []Expr{
 				&Assign{
-					tok: &Token{kind: TOKEN_COLONEQUAL, value: ":="},
-					lhs: &Variable{tok: &Token{kind: TOKEN_IDENTIFIER, value: "abc"}, offset: 0, ty: &TypeUnresolved},
-					rhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "3"}},
+					Lhs: &Variable{Name: "abc", Offset: 0, Ty: &TypeUnresolved},
+					Rhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "3"}},
 				},
 				&Return{
-					tok: &Token{kind: TOKEN_RETURN, value: "return"},
-					node: &Identifier{
-						tok:      &Token{kind: TOKEN_IDENTIFIER, value: "abc"},
-						variable: nil,
+					Node: &Identifier{
+						Variable: nil,
 					},
 				},
 			},
 		},
-		ast.funcs[0].body,
+		ast.funcs[0].Body,
+		opts...,
 	)
+	if len(d) != 0 {
+		t.Errorf("(-got +want)\n%s", d)
+	}
 }
 
 func TestCallFunctionWithoutArgument(t *testing.T) {
 	stream, _ := Tokenize("func main() int{\n x := f()\nreturn x\n}\nfunc f() int {\nreturn 3\n}\n")
 	ast, err := Parse(stream)
 	assert.NoError(t, err)
-	assert.Equal(t, &TypeInt, ast.funcs[0].returnType)
-	assert.Equal(
-		t,
+	assert.Equal(t, &TypeInt, ast.funcs[0].ReturnType)
+	d := cmp.Diff(
 		&Block{
-			tok: &Token{kind: TOKEN_LBRACE, value: "{"},
-			body: []Expr{
+			Body: []Expr{
 				&Assign{
-					tok: &Token{kind: TOKEN_COLONEQUAL, value: ":="},
-					lhs: &Variable{tok: &Token{kind: TOKEN_IDENTIFIER, value: "x"}, offset: 0, ty: &TypeUnresolved},
-					rhs: &FunctionCall{tok: &Token{kind: TOKEN_IDENTIFIER, value: "f"}, arguments: []Expr{}},
+					Lhs: &Variable{Name: "x", Offset: 0, Ty: &TypeUnresolved},
+					Rhs: &FunctionCall{Arguments: []Expr{}},
 				},
 				&Return{
-					tok:  &Token{kind: TOKEN_RETURN, value: "return"},
-					node: &Identifier{tok: &Token{kind: TOKEN_IDENTIFIER, value: "x"}},
+					Node: &Identifier{tok: &Token{kind: TOKEN_IDENTIFIER, value: "x"}},
 				},
 			},
 		},
-		ast.funcs[0].body,
+		ast.funcs[0].Body,
+		opts...,
 	)
-	assert.Equal(t, &TypeInt, ast.funcs[1].returnType)
-	assert.Equal(
-		t,
+	if len(d) != 0 {
+		t.Errorf("(-got +want)\n%s", d)
+	}
+
+	assert.Equal(t, &TypeInt, ast.funcs[1].ReturnType)
+	d = cmp.Diff(
 		&Block{
-			tok: &Token{kind: TOKEN_LBRACE, value: "{"},
-			body: []Expr{
+			Body: []Expr{
 				&Return{
-					tok: &Token{kind: TOKEN_RETURN, value: "return"},
-					node: &IntLiteral{
+					Node: &IntLiteral{
 						tok: &Token{kind: TOKEN_INT, value: "3"},
 					},
 				},
 			},
 		},
-		ast.funcs[1].body,
+		ast.funcs[1].Body,
+		opts...,
 	)
+	if len(d) != 0 {
+		t.Errorf("(-got +want)\n%s", d)
+	}
 }
 
 func TestFuncReturnType(t *testing.T) {
 	stream, _ := Tokenize("func f() int {\nreturn 3\n}\n")
 	ast, err := Parse(stream)
 	assert.NoError(t, err)
-	assert.Equal(t, &TypeInt, ast.funcs[0].returnType)
-	assert.Equal(
-		t,
+	assert.Equal(t, &TypeInt, ast.funcs[0].ReturnType)
+	if d := cmp.Diff(
 		&Block{
 			tok: &Token{kind: TOKEN_LBRACE, value: "{"},
-			body: []Expr{
+			Body: []Expr{
 				&Return{
 					tok: &Token{kind: TOKEN_RETURN, value: "return"},
-					node: &IntLiteral{
+					Node: &IntLiteral{
 						tok: &Token{kind: TOKEN_INT, value: "3"},
 					},
 				},
 			},
 		},
-		ast.funcs[0].body,
-	)
+		ast.funcs[0].Body,
+		opts...,
+	); len(d) != 0 {
+		t.Errorf("(-got +want)\n%s", d)
+	}
 }
 
 func TestFunctionWithOneArgument(t *testing.T) {
 	stream, _ := Tokenize("func f(a int) int {\nreturn a\n}\n")
 	ast, err := Parse(stream)
 	assert.NoError(t, err)
-	assert.Equal(
-		t,
+	assert.Equal(t, &TypeInt, ast.funcs[0].ReturnType)
+	if d := cmp.Diff(
 		[]*Variable{
-			{tok: &Token{kind: TOKEN_IDENTIFIER, value: "a"}, offset: 0, ty: &TypeInt},
+			{Name: "a", Offset: 0, Ty: &TypeInt},
 		},
-		ast.funcs[0].parameters,
-	)
-	assert.Equal(t, &TypeInt, ast.funcs[0].returnType)
-	assert.Equal(
-		t,
+		ast.funcs[0].Parameters,
+		opts...,
+	); len(d) != 0 {
+		t.Errorf("(-got +want)\n%s", d)
+	}
+
+	if d := cmp.Diff(
 		&Block{
-			tok: &Token{kind: TOKEN_LBRACE, value: "{"},
-			body: []Expr{
+			Body: []Expr{
 				&Return{
-					tok:  &Token{kind: TOKEN_RETURN, value: "return"},
-					node: &Identifier{tok: &Token{kind: TOKEN_IDENTIFIER, value: "a"}},
+					Node: &Identifier{tok: &Token{kind: TOKEN_IDENTIFIER, value: "a"}},
 				},
 			},
 		},
-		ast.funcs[0].body,
-	)
+		ast.funcs[0].Body,
+		opts...,
+	); len(d) != 0 {
+		t.Errorf("(-got +want)\n%s", d)
+	}
 }
 
 func TestFunctionWithArguments(t *testing.T) {
 	stream, _ := Tokenize("func f(a int, b int) int {\nreturn a + b\n}\n")
 	ast, err := Parse(stream)
 	assert.NoError(t, err)
-	assert.Equal(
-		t,
+	assert.Equal(t, &TypeInt, ast.funcs[0].ReturnType)
+	if d := cmp.Diff(
 		[]*Variable{
-			{tok: &Token{kind: TOKEN_IDENTIFIER, value: "a"}, offset: 0, ty: &TypeInt},
-			{tok: &Token{kind: TOKEN_IDENTIFIER, value: "b"}, offset: 0, ty: &TypeInt},
+			{Name: "a", Offset: 0, Ty: &TypeInt},
+			{Name: "b", Offset: 0, Ty: &TypeInt},
 		},
-		ast.funcs[0].parameters,
-	)
-	assert.Equal(t, &TypeInt, ast.funcs[0].returnType)
-	assert.Equal(
-		t,
+		ast.funcs[0].Parameters,
+		opts...,
+	); len(d) != 0 {
+		t.Errorf("(-got +want)\n%s", d)
+	}
+
+	if d := cmp.Diff(
 		&Block{
 			tok: &Token{kind: TOKEN_LBRACE, value: "{"},
-			body: []Expr{
+			Body: []Expr{
 				&Return{
 					tok: &Token{kind: TOKEN_RETURN, value: "return"},
-					node: &AddOp{
+					Node: &AddOp{
 						tok: &Token{kind: TOKEN_PLUS, value: "+"},
-						lhs: &Identifier{tok: &Token{kind: TOKEN_IDENTIFIER, value: "a"}},
-						rhs: &Identifier{tok: &Token{kind: TOKEN_IDENTIFIER, value: "b"}},
+						Lhs: &Identifier{tok: &Token{kind: TOKEN_IDENTIFIER, value: "a"}},
+						Rhs: &Identifier{tok: &Token{kind: TOKEN_IDENTIFIER, value: "b"}},
 					},
 				},
 			},
 		},
-		ast.funcs[0].body,
-	)
+		ast.funcs[0].Body,
+		opts...,
+	); len(d) != 0 {
+		t.Errorf("(-got +want)\n%s", d)
+	}
 }
 
 func TestCallFunctionWithArgument(t *testing.T) {
 	stream, _ := Tokenize("func main() {\nx := f(1)\nreturn x\n}\nfunc f(a int) int {\nreturn a\n}\n")
 	ast, err := Parse(stream)
 	assert.NoError(t, err)
-	assert.Equal(
-		t,
+	if d := cmp.Diff(
 		&Block{
 			tok: &Token{kind: TOKEN_LBRACE, value: "{"},
-			body: []Expr{
+			Body: []Expr{
 				&Assign{
 					tok: &Token{kind: TOKEN_COLONEQUAL, value: ":="},
-					lhs: &Variable{tok: &Token{kind: TOKEN_IDENTIFIER, value: "x"}, offset: 0, ty: &TypeUnresolved},
-					rhs: &FunctionCall{
+					Lhs: &Variable{Name: "x", Offset: 0, Ty: &TypeUnresolved},
+					Rhs: &FunctionCall{
 						tok: &Token{kind: TOKEN_IDENTIFIER, value: "f"},
-						arguments: []Expr{
+						Arguments: []Expr{
 							&IntLiteral{tok: &Token{kind: TOKEN_INT, value: "1"}},
 						},
 					},
 				},
 				&Return{
 					tok:  &Token{kind: TOKEN_RETURN, value: "return"},
-					node: &Identifier{tok: &Token{kind: TOKEN_IDENTIFIER, value: "x"}},
+					Node: &Identifier{tok: &Token{kind: TOKEN_IDENTIFIER, value: "x"}},
 				},
 			},
 		},
-		ast.funcs[0].body,
-	)
+		ast.funcs[0].Body,
+		opts...,
+	); len(d) != 0 {
+		t.Errorf("(-got +want)\n%s", d)
+	}
 }
 
 func TestCallFunctionWithArguments(t *testing.T) {
 	stream, _ := Tokenize("func main() {\nx := 1\ny := f(x, 2 + 3)\nreturn y\n}\nfunc f(a int, b int) int {\nreturn a + b\n}\n")
 	ast, err := Parse(stream)
 	assert.NoError(t, err)
-	assert.Equal(
-		t,
+	if d := cmp.Diff(
 		&Block{
 			tok: &Token{kind: TOKEN_LBRACE, value: "{"},
-			body: []Expr{
+			Body: []Expr{
 				&Assign{
 					tok: &Token{kind: TOKEN_COLONEQUAL, value: ":="},
-					lhs: &Variable{tok: &Token{kind: TOKEN_IDENTIFIER, value: "x"}, offset: 0, ty: &TypeUnresolved},
-					rhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "1"}},
+					Lhs: &Variable{Name: "x", Offset: 0, Ty: &TypeUnresolved},
+					Rhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "1"}},
 				},
 				&Assign{
 					tok: &Token{kind: TOKEN_COLONEQUAL, value: ":="},
-					lhs: &Variable{tok: &Token{kind: TOKEN_IDENTIFIER, value: "y"}, offset: 0, ty: &TypeUnresolved},
-					rhs: &FunctionCall{
+					Lhs: &Variable{Name: "y", Offset: 0, Ty: &TypeUnresolved},
+					Rhs: &FunctionCall{
 						tok: &Token{kind: TOKEN_IDENTIFIER, value: "f"},
-						arguments: []Expr{
+						Arguments: []Expr{
 							&Identifier{tok: &Token{kind: TOKEN_IDENTIFIER, value: "x"}},
 							&AddOp{
 								tok: &Token{kind: TOKEN_PLUS, value: "+"},
-								lhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "2"}},
-								rhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "3"}},
+								Lhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "2"}},
+								Rhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "3"}},
 							},
 						},
 					},
 				},
 				&Return{
 					tok:  &Token{kind: TOKEN_RETURN, value: "return"},
-					node: &Identifier{tok: &Token{kind: TOKEN_IDENTIFIER, value: "y"}},
+					Node: &Identifier{tok: &Token{kind: TOKEN_IDENTIFIER, value: "y"}},
 				},
 			},
 		},
-		ast.funcs[0].body,
-	)
+		ast.funcs[0].Body,
+		opts...,
+	); len(d) != 0 {
+		t.Errorf("(-got +want)\n%s", d)
+	}
 }
 
 func TestBool(t *testing.T) {
 	stream, _ := Tokenize("func main(){\nreturn true\n}\n")
 	ast, err := Parse(stream)
 	assert.NoError(t, err)
-	assert.Equal(
-		t,
+	if d := cmp.Diff(
 		&Block{
 			tok: &Token{kind: TOKEN_LBRACE, value: "{"},
-			body: []Expr{
+			Body: []Expr{
 				&Return{
 					tok: &Token{kind: TOKEN_RETURN, value: "return"},
-					node: &BoolLiteral{
+					Node: &BoolLiteral{
 						tok:   &Token{kind: TOKEN_IDENTIFIER, value: "true"},
-						value: true,
+						Value: true,
 					},
 				},
 			},
 		},
-		ast.funcs[0].body,
-	)
+		ast.funcs[0].Body,
+		opts...,
+	); len(d) != 0 {
+		t.Errorf("(-got +want)\n%s", d)
+	}
 }
 
 func TestShortVarDeclAndAdd(t *testing.T) {
@@ -251,35 +283,37 @@ func TestShortVarDeclAndAdd(t *testing.T) {
 	ast, err := Parse(stream)
 	assert.NoError(t, err)
 
-	assert.Equal(
-		t,
+	if d := cmp.Diff(
 		&Block{
 			tok: &Token{kind: TOKEN_LBRACE, value: "{"},
-			body: []Expr{
+			Body: []Expr{
 				&Assign{
 					tok: &Token{kind: TOKEN_COLONEQUAL, value: ":="},
-					lhs: &Variable{tok: &Token{kind: TOKEN_IDENTIFIER, value: "xy"}, offset: 0, ty: &TypeUnresolved},
-					rhs: &AddOp{
+					Lhs: &Variable{Name: "xy", Offset: 0, Ty: &TypeUnresolved},
+					Rhs: &AddOp{
 						tok: &Token{kind: TOKEN_PLUS, value: "+"},
-						lhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "1"}},
-						rhs: &AddOp{
+						Lhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "1"}},
+						Rhs: &AddOp{
 							tok: &Token{kind: TOKEN_PLUS, value: "+"},
-							lhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "2"}},
-							rhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "3"}},
+							Lhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "2"}},
+							Rhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "3"}},
 						},
 					},
 				},
 				&Return{
 					tok: &Token{kind: TOKEN_RETURN, value: "return"},
-					node: &Identifier{
+					Node: &Identifier{
 						tok:      &Token{kind: TOKEN_IDENTIFIER, value: "xy"},
-						variable: nil,
+						Variable: nil,
 					},
 				},
 			},
 		},
-		ast.funcs[0].body,
-	)
+		ast.funcs[0].Body,
+		opts...,
+	); len(d) != 0 {
+		t.Errorf("(-got +want)\n%s", d)
+	}
 }
 
 func TestLhsOfShortVarDeclIsNotIdentifier(t *testing.T) {
