@@ -16,9 +16,9 @@ jobs:
 
       - uses: actions/setup-go@v3
         with:
-          go-version-file: 'go.mod'
+          go-version-file: './go.mod'
           cache: true
-          cache-dependency-path: subdir/go.sum
+          cache-dependency-path: ./go.sum
 
       - name: Test
         run: |
