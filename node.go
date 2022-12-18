@@ -9,62 +9,65 @@ type Expr interface {
 
 type FunctionDecl struct {
 	tok        *Token
-	name       string
-	parameters []*Variable
-	returnType *Type
-	body       *Block
-	scope      *Scope
+	Name       string
+	Parameters []*Variable
+	ReturnType *Type
+	Body       *Block
+	Scope      *Scope
 }
 
 type Block struct {
 	tok  *Token
-	body []Expr
+	Body []Expr
 }
 
 type Return struct {
 	tok  *Token
-	node Expr
+	Node Expr
 }
 
 type Assign struct {
 	tok *Token
-	lhs Expr
-	rhs Expr
+	Lhs Expr
+	Rhs Expr
 }
 
 type AddOp struct {
 	tok *Token
-	lhs Expr
-	rhs Expr
+	Lhs Expr
+	Rhs Expr
 }
 
 // Variable is considered a tag for a memory region with type information.
 // `offset` is determined in code generation step.
 type Variable struct {
-	tok *Token
+	tok  *Token
+	Name string
 	// Offset from stack pointer after function's prelude.
-	offset int
-	ty     *Type
+	Offset int
+	Ty     *Type
 }
 
 type Identifier struct {
 	tok      *Token
-	variable *Variable
+	Name     string
+	Variable *Variable
 }
 
 type IntLiteral struct {
-	tok *Token
+	tok   *Token
+	Value string
 }
 
 type BoolLiteral struct {
 	tok   *Token
-	value bool
+	Value bool
 }
 
 type FunctionCall struct {
 	tok       *Token
-	function  *FunctionDecl
-	arguments []Expr
+	Function  *FunctionDecl
+	Arguments []Expr
 }
 
 func (node *FunctionDecl) token() *Token { return node.tok }
@@ -79,13 +82,5 @@ func (node *BoolLiteral) token() *Token  { return node.tok }
 func (node *FunctionCall) token() *Token { return node.tok }
 
 func (node *FunctionCall) Name() string {
-	return node.token().value
-}
-
-func (node *Variable) Name() string {
-	return node.token().value
-}
-
-func (node *Identifier) Name() string {
 	return node.token().value
 }

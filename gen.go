@@ -30,10 +30,10 @@ func comment(msg string, a ...any) {
 
 func (expr *FunctionDecl) emit() {
 	var functionName string
-	if expr.name == "main" {
+	if expr.Name == "main" {
 		functionName = "_main"
 	} else {
-		functionName = expr.name
+		functionName = expr.Name
 	}
 	fmt.Printf(".globl %s\n", functionName)
 	fmt.Printf("%s:\n", functionName)
@@ -41,21 +41,21 @@ func (expr *FunctionDecl) emit() {
 	save_frame_pointer_and_link_register()
 
 	totalOffset := 0
-	for name, expr := range expr.scope.exprs {
+	for name, expr := range expr.Scope.exprs {
 		if variable, ok := expr.(*Variable); ok {
-			variable.offset = totalOffset
-			comment("offset of %s: %d", name, variable.offset)
-			totalOffset += variable.ty.GetSize()
+			variable.Offset = totalOffset
+			comment("offset of %s: %d", name, variable.Offset)
+			totalOffset += variable.Ty.GetSize()
 		}
 	}
 
 	code("sub sp, sp, #%d", totalOffset)
 	code("mov %s, sp", fp)
 
-	for i, parameter := range expr.parameters {
-		code("str %s, [%s, #%d]", argumentRegisters[i], fp, parameter.offset)
+	for i, parameter := range expr.Parameters {
+		code("str %s, [%s, #%d]", argumentRegisters[i], fp, parameter.Offset)
 	}
-	expr.body.emit()
+	expr.Body.emit()
 
 	code("add sp, sp, #%d", totalOffset)
 	restore_frame_pointer_and_link_register()
@@ -71,19 +71,19 @@ func restore_frame_pointer_and_link_register() {
 }
 
 func (expr *Block) emit() {
-	for _, stmt := range expr.body {
+	for _, stmt := range expr.Body {
 		stmt.emit()
 	}
 }
 
 func (expr *Return) emit() {
-	expr.node.emit()
+	expr.Node.emit()
 	generatePop("x0")
 }
 
 func (expr *Assign) emit() {
-	expr.lhs.emit()
-	expr.rhs.emit()
+	expr.Lhs.emit()
+	expr.Rhs.emit()
 	comment("assign")
 	generatePop("x1")
 	generatePop("x2")
@@ -91,8 +91,8 @@ func (expr *Assign) emit() {
 }
 
 func (expr *AddOp) emit() {
-	expr.lhs.emit()
-	expr.rhs.emit()
+	expr.Lhs.emit()
+	expr.Rhs.emit()
 	comment("add")
 	generatePop("x2")
 	generatePop("x1")
@@ -101,14 +101,14 @@ func (expr *AddOp) emit() {
 }
 
 func (expr *Variable) emit() {
-	comment("variable: %s", expr.Name())
-	code("add x0, %s, #%d", fp, expr.offset)
+	comment("variable: %s", expr.Name)
+	code("add x0, %s, #%d", fp, expr.Offset)
 	generatePush("x0")
 }
 
 func (expr *Identifier) emit() {
-	comment("identifier: %s", expr.Name())
-	code("add x1, %s, #%d", fp, expr.variable.offset)
+	comment("identifier: %s", expr.Name)
+	code("add x1, %s, #%d", fp, expr.Variable.Offset)
 	code("ldr x0, [x1]")
 	generatePush("x0")
 }
@@ -121,7 +121,7 @@ func (expr *IntLiteral) emit() {
 
 func (expr *BoolLiteral) emit() {
 	comment("bool literal")
-	if expr.value {
+	if expr.Value {
 		code("mov x0, #1")
 	} else {
 		code("mov x0, #0")
@@ -131,12 +131,12 @@ func (expr *BoolLiteral) emit() {
 
 func (expr *FunctionCall) emit() {
 	comment("function call")
-	for i := len(expr.arguments) - 1; i >= 0; i-- {
-		expr.arguments[i].emit()
+	for i := len(expr.Arguments) - 1; i >= 0; i-- {
+		expr.Arguments[i].emit()
 		generatePop("x0")
 		code("mov x%d, x0", i)
 	}
-	code("bl %s", expr.function.name)
+	code("bl %s", expr.Function.Name)
 	generatePush("x0")
 	comment("function call end")
 }

@@ -13,10 +13,10 @@ func TestTypeResolveVariable(t *testing.T) {
 	err = ast.InferType()
 	assert.NoError(t, err)
 
-	assign := ast.funcs[0].body.body[0].(*Assign)
-	assert.Equal(t, &TypeInt, assign.lhs.(*Variable).ty)
-	ret := ast.funcs[0].body.body[1].(*Return)
-	assert.Equal(t, &TypeInt, ret.node.(*Identifier).variable.ty)
+	assign := ast.funcs[0].Body.Body[0].(*Assign)
+	assert.Equal(t, &TypeInt, assign.Lhs.(*Variable).Ty)
+	ret := ast.funcs[0].Body.Body[1].(*Return)
+	assert.Equal(t, &TypeInt, ret.Node.(*Identifier).Variable.Ty)
 }
 
 func TestTypeResolveAdd(t *testing.T) {
@@ -26,8 +26,8 @@ func TestTypeResolveAdd(t *testing.T) {
 	err = ast.InferType()
 	assert.NoError(t, err)
 
-	assign := ast.funcs[0].body.body[0].(*Assign)
-	assert.Equal(t, &TypeInt, assign.lhs.(*Variable).ty)
+	assign := ast.funcs[0].Body.Body[0].(*Assign)
+	assert.Equal(t, &TypeInt, assign.Lhs.(*Variable).Ty)
 }
 
 func TestTypeCallFunctionWithoutArgument(t *testing.T) {
@@ -37,14 +37,14 @@ func TestTypeCallFunctionWithoutArgument(t *testing.T) {
 	err = ast.InferType()
 	assert.NoError(t, err)
 
-	assign := ast.funcs[0].body.body[0].(*Assign)
-	assert.Equal(t, &TypeInt, assign.lhs.(*Variable).ty)
-	fuctionCall := assign.rhs.(*AddOp).lhs.(*FunctionCall)
-	assert.Equal(t, &TypeInt, fuctionCall.function.returnType)
+	assign := ast.funcs[0].Body.Body[0].(*Assign)
+	assert.Equal(t, &TypeInt, assign.Lhs.(*Variable).Ty)
+	fuctionCall := assign.Rhs.(*AddOp).Lhs.(*FunctionCall)
+	assert.Equal(t, &TypeInt, fuctionCall.Function.ReturnType)
 
-	x, ok := ast.funcs[0].scope.GetExpr("x")
+	x, ok := ast.funcs[0].Scope.GetExpr("x")
 	assert.True(t, ok)
-	assert.Equal(t, 0, x.(*Variable).offset)
+	assert.Equal(t, 0, x.(*Variable).Offset)
 }
 
 func TestTypeCallFunctionWithArgument(t *testing.T) {
@@ -54,9 +54,9 @@ func TestTypeCallFunctionWithArgument(t *testing.T) {
 	err = ast.InferType()
 	assert.NoError(t, err)
 
-	a, ok := ast.funcs[1].scope.GetExpr("a")
+	a, ok := ast.funcs[1].Scope.GetExpr("a")
 	assert.True(t, ok)
-	assert.Equal(t, 0, a.(*Variable).offset)
+	assert.Equal(t, 0, a.(*Variable).Offset)
 }
 
 func TestReturnUndefinedVariable(t *testing.T) {

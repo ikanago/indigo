@@ -93,7 +93,7 @@ func (parser *parser) stmt() (Expr, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &Return{tok: token, node: node}, nil
+		return &Return{tok: token, Node: node}, nil
 	}
 
 	node, err := parser.addOp()
@@ -135,11 +135,11 @@ func (parser *parser) functionDecl() (*FunctionDecl, error) {
 
 	function := &FunctionDecl{
 		tok:        tokenFunc,
-		name:       name,
-		parameters: parameters,
-		returnType: returnType,
-		body:       body,
-		scope:      parser.localScope,
+		Name:       name,
+		Parameters: parameters,
+		ReturnType: returnType,
+		Body:       body,
+		Scope:      parser.localScope,
 	}
 	parser.globalScope.InsertExpr(name, function)
 	return function, nil
@@ -180,8 +180,8 @@ func (parser *parser) signiture() ([]*Variable, *Type, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	if returnType != nil && !parser.globalScope.ExistsType(returnType.name) {
-		return nil, nil, fmt.Errorf("undefined: %s", returnType.name)
+	if returnType != nil && !parser.globalScope.ExistsType(returnType.Name) {
+		return nil, nil, fmt.Errorf("undefined: %s", returnType.Name)
 	}
 	return parameters, returnType, nil
 }
@@ -194,7 +194,7 @@ func (parser *parser) parameterDecl() (*Variable, error) {
 		if err != nil {
 			return nil, err
 		}
-		parameter := &Variable{tok: parameterToken, ty: ty}
+		parameter := &Variable{tok: parameterToken, Name: parameterToken.value, Ty: ty}
 		name := parameterToken.value
 		if parser.localScope.ExistsExpr(name) {
 			return nil, fmt.Errorf("%s redeclared in this block", name)
@@ -246,7 +246,7 @@ func (parser *parser) block() (*Block, error) {
 		}
 	}
 
-	return &Block{tok: lbraceToken, body: body}, nil
+	return &Block{tok: lbraceToken, Body: body}, nil
 }
 
 func (parser *parser) shortVarDecl(lhs Expr) (Expr, error) {
@@ -255,11 +255,11 @@ func (parser *parser) shortVarDecl(lhs Expr) (Expr, error) {
 		return nil, err
 	}
 
-	lhsVar := &Variable{tok: lhs.token(), ty: &TypeUnresolved}
-	if parser.localScope.ExistsExpr(lhsVar.Name()) {
+	lhsVar := &Variable{tok: lhs.token(), Name: lhs.token().value, Ty: &TypeUnresolved}
+	if parser.localScope.ExistsExpr(lhsVar.Name) {
 		return nil, errors.New("no new variables on left side of :=")
 	}
-	parser.localScope.InsertExpr(lhsVar.Name(), lhsVar)
+	parser.localScope.InsertExpr(lhsVar.Name, lhsVar)
 
 	parser.consumeString(":=")
 	rhs, err := parser.addOp()
@@ -267,7 +267,7 @@ func (parser *parser) shortVarDecl(lhs Expr) (Expr, error) {
 		return nil, err
 	}
 
-	return &Assign{tok: &Token{kind: TOKEN_COLONEQUAL, value: ":="}, lhs: lhsVar, rhs: rhs}, nil
+	return &Assign{tok: &Token{kind: TOKEN_COLONEQUAL, value: ":="}, Lhs: lhsVar, Rhs: rhs}, nil
 }
 
 func (parser *parser) addOp() (Expr, error) {
@@ -284,7 +284,7 @@ func (parser *parser) addOp() (Expr, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &AddOp{tok: token, lhs: lhs, rhs: rhs}, nil
+		return &AddOp{tok: token, Lhs: lhs, Rhs: rhs}, nil
 	default:
 		return lhs, nil
 	}
@@ -295,20 +295,20 @@ func (parser *parser) primaryExpr() (Expr, error) {
 	switch token.kind {
 	case TOKEN_INT:
 		parser.skip()
-		return &IntLiteral{tok: token}, nil
+		return &IntLiteral{tok: token, Value: token.value}, nil
 	case TOKEN_IDENTIFIER:
 		parser.skip()
 		if token.value == "true" {
-			return &BoolLiteral{tok: token, value: true}, nil
+			return &BoolLiteral{tok: token, Value: true}, nil
 		} else if token.value == "false" {
-			return &BoolLiteral{tok: token, value: false}, nil
+			return &BoolLiteral{tok: token, Value: false}, nil
 		}
 
 		if parser.peek().kind == TOKEN_LPAREN {
 			return parser.functionCall(token)
 		}
 
-		return &Identifier{tok: token}, nil
+		return &Identifier{tok: token, Name: token.value}, nil
 	}
 	return nil, fmt.Errorf("unexpected %s, expecting primary expression", token.value)
 }
@@ -341,5 +341,5 @@ func (parser *parser) functionCall(token *Token) (Expr, error) {
 	if err := parser.consumeString(")"); err != nil {
 		return nil, err
 	}
-	return &FunctionCall{tok: token, arguments: arguments}, nil
+	return &FunctionCall{tok: token, Arguments: arguments}, nil
 }
