@@ -295,7 +295,7 @@ func (parser *parser) primaryExpr() (Expr, error) {
 	switch token.kind {
 	case TOKEN_INT:
 		parser.skip()
-		return &IntLiteral{tok: token}, nil
+		return &IntLiteral{tok: token, Value: token.value}, nil
 	case TOKEN_IDENTIFIER:
 		parser.skip()
 		if token.value == "true" {
@@ -308,7 +308,7 @@ func (parser *parser) primaryExpr() (Expr, error) {
 			return parser.functionCall(token)
 		}
 
-		return &Identifier{tok: token}, nil
+		return &Identifier{tok: token, Name: token.value}, nil
 	}
 	return nil, fmt.Errorf("unexpected %s, expecting primary expression", token.value)
 }

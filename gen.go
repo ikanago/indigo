@@ -107,7 +107,7 @@ func (expr *Variable) emit() {
 }
 
 func (expr *Identifier) emit() {
-	comment("identifier: %s", expr.Name())
+	comment("identifier: %s", expr.Name)
 	code("add x1, %s, #%d", fp, expr.Variable.Offset)
 	code("ldr x0, [x1]")
 	generatePush("x0")

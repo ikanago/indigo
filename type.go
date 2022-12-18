@@ -79,10 +79,10 @@ func InferTypeForNode(expr Expr, scope *Scope) (*Type, error) {
 		return returnType, nil
 	case *Return:
 		if node, ok := expr.Node.(*Identifier); ok {
-			if variable, ok := scope.GetExpr(node.Name()); !ok {
-				return nil, fmt.Errorf("undefined: %s", node.Name())
+			if variable, ok := scope.GetExpr(node.Name); !ok {
+				return nil, fmt.Errorf("undefined: %s", node.Name)
 			} else if variable := variable.(*Variable); variable.Ty.isUnresolved() {
-				return nil, fmt.Errorf("undefined: %s", node.Name())
+				return nil, fmt.Errorf("undefined: %s", node.Name)
 			}
 		}
 		return InferTypeForNode(expr.Node, scope)
@@ -117,15 +117,15 @@ func InferTypeForNode(expr Expr, scope *Scope) (*Type, error) {
 		}
 		return lhsType, nil
 	case *Identifier:
-		variable, ok := scope.GetExpr(expr.Name())
+		variable, ok := scope.GetExpr(expr.Name)
 		if !ok {
-			return nil, fmt.Errorf("undefined: %s", expr.Name())
+			return nil, fmt.Errorf("undefined: %s", expr.Name)
 		}
 		if variable, ok := variable.(*Variable); ok {
 			expr.Variable = variable
 			return variable.Ty, nil
 		}
-		return nil, fmt.Errorf("unexpected %s, expecting variable", expr.Name())
+		return nil, fmt.Errorf("unexpected %s, expecting variable", expr.Name)
 	case *IntLiteral:
 		return &TypeInt, nil
 	case *BoolLiteral:

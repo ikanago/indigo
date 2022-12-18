@@ -31,13 +31,9 @@ func TestFuncDef(t *testing.T) {
 			Body: []Expr{
 				&Assign{
 					Lhs: &Variable{Name: "abc", Offset: 0, Ty: &TypeUnresolved},
-					Rhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "3"}},
+					Rhs: &IntLiteral{Value: "3"},
 				},
-				&Return{
-					Node: &Identifier{
-						Variable: nil,
-					},
-				},
+				&Return{Node: &Identifier{Name: "abc", Variable: nil}},
 			},
 		},
 		ast.funcs[0].Body,
@@ -60,9 +56,7 @@ func TestCallFunctionWithoutArgument(t *testing.T) {
 					Lhs: &Variable{Name: "x", Offset: 0, Ty: &TypeUnresolved},
 					Rhs: &FunctionCall{Arguments: []Expr{}},
 				},
-				&Return{
-					Node: &Identifier{tok: &Token{kind: TOKEN_IDENTIFIER, value: "x"}},
-				},
+				&Return{Node: &Identifier{Name: "x"}},
 			},
 		},
 		ast.funcs[0].Body,
@@ -76,11 +70,7 @@ func TestCallFunctionWithoutArgument(t *testing.T) {
 	d = cmp.Diff(
 		&Block{
 			Body: []Expr{
-				&Return{
-					Node: &IntLiteral{
-						tok: &Token{kind: TOKEN_INT, value: "3"},
-					},
-				},
+				&Return{Node: &IntLiteral{Value: "3"}},
 			},
 		},
 		ast.funcs[1].Body,
@@ -98,14 +88,8 @@ func TestFuncReturnType(t *testing.T) {
 	assert.Equal(t, &TypeInt, ast.funcs[0].ReturnType)
 	if d := cmp.Diff(
 		&Block{
-			tok: &Token{kind: TOKEN_LBRACE, value: "{"},
 			Body: []Expr{
-				&Return{
-					tok: &Token{kind: TOKEN_RETURN, value: "return"},
-					Node: &IntLiteral{
-						tok: &Token{kind: TOKEN_INT, value: "3"},
-					},
-				},
+				&Return{Node: &IntLiteral{Value: "3"}},
 			},
 		},
 		ast.funcs[0].Body,
@@ -133,9 +117,7 @@ func TestFunctionWithOneArgument(t *testing.T) {
 	if d := cmp.Diff(
 		&Block{
 			Body: []Expr{
-				&Return{
-					Node: &Identifier{tok: &Token{kind: TOKEN_IDENTIFIER, value: "a"}},
-				},
+				&Return{Node: &Identifier{Name: "a"}},
 			},
 		},
 		ast.funcs[0].Body,
@@ -163,14 +145,11 @@ func TestFunctionWithArguments(t *testing.T) {
 
 	if d := cmp.Diff(
 		&Block{
-			tok: &Token{kind: TOKEN_LBRACE, value: "{"},
 			Body: []Expr{
 				&Return{
-					tok: &Token{kind: TOKEN_RETURN, value: "return"},
 					Node: &AddOp{
-						tok: &Token{kind: TOKEN_PLUS, value: "+"},
-						Lhs: &Identifier{tok: &Token{kind: TOKEN_IDENTIFIER, value: "a"}},
-						Rhs: &Identifier{tok: &Token{kind: TOKEN_IDENTIFIER, value: "b"}},
+						Lhs: &Identifier{Name: "a"},
+						Rhs: &Identifier{Name: "b"},
 					},
 				},
 			},
@@ -188,22 +167,16 @@ func TestCallFunctionWithArgument(t *testing.T) {
 	assert.NoError(t, err)
 	if d := cmp.Diff(
 		&Block{
-			tok: &Token{kind: TOKEN_LBRACE, value: "{"},
 			Body: []Expr{
 				&Assign{
-					tok: &Token{kind: TOKEN_COLONEQUAL, value: ":="},
 					Lhs: &Variable{Name: "x", Offset: 0, Ty: &TypeUnresolved},
 					Rhs: &FunctionCall{
-						tok: &Token{kind: TOKEN_IDENTIFIER, value: "f"},
 						Arguments: []Expr{
-							&IntLiteral{tok: &Token{kind: TOKEN_INT, value: "1"}},
+							&IntLiteral{Value: "1"},
 						},
 					},
 				},
-				&Return{
-					tok:  &Token{kind: TOKEN_RETURN, value: "return"},
-					Node: &Identifier{tok: &Token{kind: TOKEN_IDENTIFIER, value: "x"}},
-				},
+				&Return{Node: &Identifier{Name: "x"}},
 			},
 		},
 		ast.funcs[0].Body,
@@ -219,31 +192,25 @@ func TestCallFunctionWithArguments(t *testing.T) {
 	assert.NoError(t, err)
 	if d := cmp.Diff(
 		&Block{
-			tok: &Token{kind: TOKEN_LBRACE, value: "{"},
 			Body: []Expr{
 				&Assign{
-					tok: &Token{kind: TOKEN_COLONEQUAL, value: ":="},
 					Lhs: &Variable{Name: "x", Offset: 0, Ty: &TypeUnresolved},
-					Rhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "1"}},
+					Rhs: &IntLiteral{Value: "1"},
 				},
 				&Assign{
-					tok: &Token{kind: TOKEN_COLONEQUAL, value: ":="},
 					Lhs: &Variable{Name: "y", Offset: 0, Ty: &TypeUnresolved},
 					Rhs: &FunctionCall{
-						tok: &Token{kind: TOKEN_IDENTIFIER, value: "f"},
 						Arguments: []Expr{
-							&Identifier{tok: &Token{kind: TOKEN_IDENTIFIER, value: "x"}},
+							&Identifier{Name: "x"},
 							&AddOp{
-								tok: &Token{kind: TOKEN_PLUS, value: "+"},
-								Lhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "2"}},
-								Rhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "3"}},
+								Lhs: &IntLiteral{Value: "2"},
+								Rhs: &IntLiteral{Value: "3"},
 							},
 						},
 					},
 				},
 				&Return{
-					tok:  &Token{kind: TOKEN_RETURN, value: "return"},
-					Node: &Identifier{tok: &Token{kind: TOKEN_IDENTIFIER, value: "y"}},
+					Node: &Identifier{Name: "y"},
 				},
 			},
 		},
@@ -260,14 +227,9 @@ func TestBool(t *testing.T) {
 	assert.NoError(t, err)
 	if d := cmp.Diff(
 		&Block{
-			tok: &Token{kind: TOKEN_LBRACE, value: "{"},
 			Body: []Expr{
 				&Return{
-					tok: &Token{kind: TOKEN_RETURN, value: "return"},
-					Node: &BoolLiteral{
-						tok:   &Token{kind: TOKEN_IDENTIFIER, value: "true"},
-						Value: true,
-					},
+					Node: &BoolLiteral{Value: true},
 				},
 			},
 		},
@@ -285,28 +247,18 @@ func TestShortVarDeclAndAdd(t *testing.T) {
 
 	if d := cmp.Diff(
 		&Block{
-			tok: &Token{kind: TOKEN_LBRACE, value: "{"},
 			Body: []Expr{
 				&Assign{
-					tok: &Token{kind: TOKEN_COLONEQUAL, value: ":="},
 					Lhs: &Variable{Name: "xy", Offset: 0, Ty: &TypeUnresolved},
 					Rhs: &AddOp{
-						tok: &Token{kind: TOKEN_PLUS, value: "+"},
-						Lhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "1"}},
+						Lhs: &IntLiteral{Value: "1"},
 						Rhs: &AddOp{
-							tok: &Token{kind: TOKEN_PLUS, value: "+"},
-							Lhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "2"}},
-							Rhs: &IntLiteral{tok: &Token{kind: TOKEN_INT, value: "3"}},
+							Lhs: &IntLiteral{Value: "2"},
+							Rhs: &IntLiteral{Value: "3"},
 						},
 					},
 				},
-				&Return{
-					tok: &Token{kind: TOKEN_RETURN, value: "return"},
-					Node: &Identifier{
-						tok:      &Token{kind: TOKEN_IDENTIFIER, value: "xy"},
-						Variable: nil,
-					},
-				},
+				&Return{Node: &Identifier{Name: "xy"}},
 			},
 		},
 		ast.funcs[0].Body,

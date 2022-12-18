@@ -50,11 +50,13 @@ type Variable struct {
 
 type Identifier struct {
 	tok      *Token
+	Name     string
 	Variable *Variable
 }
 
 type IntLiteral struct {
-	tok *Token
+	tok   *Token
+	Value string
 }
 
 type BoolLiteral struct {
@@ -80,9 +82,5 @@ func (node *BoolLiteral) token() *Token  { return node.tok }
 func (node *FunctionCall) token() *Token { return node.tok }
 
 func (node *FunctionCall) Name() string {
-	return node.token().value
-}
-
-func (node *Identifier) Name() string {
 	return node.token().value
 }
