@@ -115,7 +115,7 @@ func (expr *Identifier) emit() {
 
 func (expr *IntLiteral) emit() {
 	comment("int literal")
-	code("mov x0, #%s", expr.tok.value)
+	code("mov x0, #%s", expr.tok.Value)
 	generatePush("x0")
 }
 

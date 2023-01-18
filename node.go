@@ -82,5 +82,5 @@ func (node *BoolLiteral) token() *Token  { return node.tok }
 func (node *FunctionCall) token() *Token { return node.tok }
 
 func (node *FunctionCall) Name() string {
-	return node.token().value
+	return node.token().Value
 }

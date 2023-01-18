@@ -23,8 +23,9 @@ const (
 )
 
 type Token struct {
-	kind  TokenKind
-	value string
+	Kind  TokenKind
+	Value string
+	pos   Position
 }
 
 type TokenStream struct {
@@ -34,8 +35,10 @@ type TokenStream struct {
 
 func (stream *TokenStream) IsEnd() bool {
 	token := stream.tokens[stream.index]
-	return token.kind == TOKEN_EOF
+	return token.Kind == TOKEN_EOF
 }
+
+// func mergeToken(token *Token, other *Token) *Token {}
 
 func initKeywordMap() map[string]TokenKind {
 	return map[string]TokenKind{
@@ -44,80 +47,106 @@ func initKeywordMap() map[string]TokenKind {
 	}
 }
 
-func Tokenize(source string) (*TokenStream, error) {
+func Tokenize(stream *ByteStream) (*TokenStream, error) {
 	keywordMap := initKeywordMap()
-	current := 0
 	var tokens []Token
 	for {
-		if current >= len(source) {
+		currentByte, ok := stream.get()
+		pos := stream.CurrentPosition
+		if !ok {
 			break
 		}
 
-		currentByte := source[current]
-
 		if isWhitespace(currentByte) {
-			current += 1
+			continue
 		} else if currentByte == '\n' {
 			if shouldInsertSemicolon(tokens) {
-				tokens = append(tokens, Token{kind: TOKEN_SEMICOLON, value: ";"})
+				tokens = append(tokens, Token{Kind: TOKEN_SEMICOLON, Value: ";"})
 			}
-			current += 1
 		} else if currentByte == '(' {
-			symbol := source[current:(current + 1)]
-			token := Token{kind: TOKEN_LPAREN, value: symbol}
-			tokens = append(tokens, token)
-			current += len(symbol)
-		} else if currentByte == ')' {
-			symbol := source[current:(current + 1)]
-			token := Token{kind: TOKEN_RPAREN, value: symbol}
-			tokens = append(tokens, token)
-			current += len(symbol)
-		} else if currentByte == '{' {
-			symbol := source[current:(current + 1)]
-			token := Token{kind: TOKEN_LBRACE, value: symbol}
-			tokens = append(tokens, token)
-			current += len(symbol)
-		} else if currentByte == '}' {
-			symbol := source[current:(current + 1)]
-			token := Token{kind: TOKEN_RBRACE, value: symbol}
-			tokens = append(tokens, token)
-			current += len(symbol)
-		} else if currentByte == '+' {
-			symbol := source[current:(current + 1)]
-			token := Token{kind: TOKEN_PLUS, value: symbol}
-			tokens = append(tokens, token)
-			current += len(symbol)
-		} else if expectString(source, current, ":=") {
-			token := Token{kind: TOKEN_COLONEQUAL, value: ":="}
-			tokens = append(tokens, token)
-			current += 2
-		} else if currentByte == ',' {
-			symbol := source[current:(current + 1)]
-			token := Token{kind: TOKEN_COMMA, value: symbol}
-			tokens = append(tokens, token)
-			current += len(symbol)
-		} else if isDigit(currentByte) {
-			digits := readDigit(source, current)
-			token := Token{kind: TOKEN_INT, value: digits}
-			tokens = append(tokens, token)
-			current += len(digits)
-		} else if isLetter(currentByte) {
-			identifier := readIdentifier(source, current)
-			var token Token
-			if kindKeyword, ok := keywordMap[identifier]; ok {
-				token = Token{kind: kindKeyword, value: identifier}
-			} else {
-				token = Token{kind: TOKEN_IDENTIFIER, value: identifier}
+			token := Token{
+				Kind:  TOKEN_LPAREN,
+				Value: string(currentByte),
+				pos:   pos,
 			}
 			tokens = append(tokens, token)
-			current += len(identifier)
+		} else if currentByte == ')' {
+			token := Token{
+				Kind:  TOKEN_RPAREN,
+				Value: string(currentByte),
+				pos:   pos,
+			}
+			tokens = append(tokens, token)
+		} else if currentByte == '{' {
+			token := Token{
+				Kind:  TOKEN_LBRACE,
+				Value: string(currentByte),
+				pos:   pos,
+			}
+			tokens = append(tokens, token)
+		} else if currentByte == '}' {
+			token := Token{
+				Kind:  TOKEN_RBRACE,
+				Value: string(currentByte),
+				pos:   pos,
+			}
+			tokens = append(tokens, token)
+		} else if currentByte == '+' {
+			token := Token{
+				Kind:  TOKEN_PLUS,
+				Value: string(currentByte),
+				pos:   pos,
+			}
+			tokens = append(tokens, token)
+		} else if currentByte == ':' {
+			c, ok := stream.get()
+			if ok && c == '=' {
+				token := Token{
+					Kind:  TOKEN_COLONEQUAL,
+					Value: ":=",
+					pos:   pos,
+				}
+				tokens = append(tokens, token)
+			} else {
+				err := fmt.Errorf("unknown character: %c", currentByte)
+				return nil, err
+			}
+		} else if currentByte == ',' {
+			token := Token{
+				Kind:  TOKEN_COMMA,
+				Value: string(currentByte),
+				pos:   pos,
+			}
+			tokens = append(tokens, token)
+		} else if isDigit(currentByte) {
+			digits := stream.readDigit(currentByte)
+			token := Token{
+				Kind:  TOKEN_INT,
+				Value: digits,
+				pos:   pos,
+			}
+			tokens = append(tokens, token)
+		} else if isLetter(currentByte) {
+			identifier := stream.readIdentifier(currentByte)
+			var kind TokenKind
+			if kindKeyword, ok := keywordMap[identifier]; ok {
+				kind = kindKeyword
+			} else {
+				kind = TOKEN_IDENTIFIER
+			}
+			token := Token{
+				Kind:  kind,
+				Value: identifier,
+				pos:   pos,
+			}
+			tokens = append(tokens, token)
 		} else {
 			err := fmt.Errorf("unknown character: %c", currentByte)
 			return nil, err
 		}
 	}
 
-	tokens = append(tokens, Token{kind: TOKEN_EOF})
+	tokens = append(tokens, Token{Kind: TOKEN_EOF})
 
 	return &TokenStream{tokens: tokens, index: 0}, nil
 }
@@ -129,15 +158,6 @@ func isWhitespace(c byte) bool {
 	default:
 		return false
 	}
-}
-
-func expectString(source string, startIndex int, expected string) bool {
-	remains := len(source) - 1 - startIndex
-	if remains < len(expected) {
-		return false
-	}
-
-	return source[startIndex:(startIndex+len(expected))] == expected
 }
 
 func isDigit(c byte) bool {
@@ -161,7 +181,7 @@ func shouldInsertSemicolon(tokens []Token) bool {
 		return false
 	}
 
-	switch tokens[len(tokens)-1].kind {
+	switch tokens[len(tokens)-1].Kind {
 	case TOKEN_IDENTIFIER, TOKEN_INT, TOKEN_RPAREN, TOKEN_RBRACE:
 		return true
 	default:
@@ -169,41 +189,38 @@ func shouldInsertSemicolon(tokens []Token) bool {
 	}
 }
 
-func readDigit(source string, startIndex int) string {
-	digitsLen := 0
+func (stream *ByteStream) readDigit(c0 byte) string {
+	digits := []byte{c0}
 	for {
-		if startIndex+digitsLen >= len(source) {
+		c, ok := stream.get()
+		if !ok {
 			break
 		}
 
-		if !isDigit(source[startIndex+digitsLen]) {
+		if !isDigit(c) {
+			stream.unget()
 			break
 		}
 
-		digitsLen += 1
+		digits = append(digits, c)
 	}
-
-	return source[startIndex:(startIndex + digitsLen)]
+	return string(digits)
 }
 
-func readIdentifier(source string, startIndex int) string {
-	if !isLetter(source[startIndex]) {
-		return ""
-	}
-
-	identifierLen := 1
+func (stream *ByteStream) readIdentifier(c0 byte) string {
+	identifier := []byte{c0}
 	for {
-		currentIndex := startIndex + identifierLen
-		if currentIndex >= len(source) {
+		c, ok := stream.get()
+		if !ok {
 			break
 		}
 
-		if !isLetter(source[currentIndex]) && !isDigit(source[currentIndex]) {
+		if !isLetter(c) && !isDigit(c) {
+			stream.unget()
 			break
 		}
 
-		identifierLen += 1
+		identifier = append(identifier, c)
 	}
-
-	return source[startIndex:(startIndex + identifierLen)]
+	return string(identifier)
 }
