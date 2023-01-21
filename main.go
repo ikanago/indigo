@@ -27,7 +27,8 @@ func main() {
 	}
 
 	source := string(fileData[:count])
-	tokenStream, err := Tokenize(source)
+	stream := NewByteStream(source)
+	tokenStream, err := Tokenize(stream)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
 		os.Exit(1)

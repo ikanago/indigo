@@ -52,7 +52,7 @@ func dumpExpr(level int, expr Expr) string {
 	case *Identifier:
 		dumped += dln(level, "Identifier: { name: %s, type: %s }", expr.Name, dumpType(expr.Variable.Ty))
 	case *IntLiteral:
-		dumped += dln(level, "IntLiteral: %s", expr.token().value)
+		dumped += dln(level, "IntLiteral: %s", expr.token().Value)
 	case *BoolLiteral:
 		dumped += dln(level, "BoolLiteral: %t", expr.Value)
 	case *FunctionCall:

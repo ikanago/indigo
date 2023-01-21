@@ -20,6 +20,10 @@ jobs:
           cache: true
           cache-dependency-path: ./go.sum
 
+      - name: Check
+        run: |
+          make check
+
       - name: Test
         run: |
-          go test -v
+          make unittest

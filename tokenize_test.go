@@ -3,79 +3,107 @@ package main
 import (
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestTokenizeMultipleLine(t *testing.T) {
-	stream, err := Tokenize("42\n43")
+	stream := NewByteStream("42\n43")
+	tokenStream, err := Tokenize(stream)
 	assert.NoError(t, err)
-	assert.Equal(
-		t,
+	d := cmp.Diff(
 		[]Token{
-			{kind: TOKEN_INT, value: "42"},
-			{kind: TOKEN_SEMICOLON, value: ";"},
-			{kind: TOKEN_INT, value: "43"},
-			{kind: TOKEN_EOF, value: ""},
+			{Kind: TOKEN_INT, Value: "42"},
+			{Kind: TOKEN_SEMICOLON, Value: ";"},
+			{Kind: TOKEN_INT, Value: "43"},
+			{Kind: TOKEN_EOF, Value: ""},
 		},
-		stream.tokens,
+		tokenStream.tokens,
+		opts...,
 	)
+	if len(d) != 0 {
+		t.Errorf("(-got +want)\n%s", d)
+	}
 }
 
 func TestTokenizeShortVarDecl(t *testing.T) {
-	stream, err := Tokenize("xy := 42")
+	stream := NewByteStream("xy := 42")
+	tokenStream, err := Tokenize(stream)
 	assert.NoError(t, err)
-	assert.Equal(t,
+	d := cmp.Diff(
 		[]Token{
-			{kind: TOKEN_IDENTIFIER, value: "xy"},
-			{kind: TOKEN_COLONEQUAL, value: ":="},
-			{kind: TOKEN_INT, value: "42"},
-			{kind: TOKEN_EOF, value: ""},
+			{Kind: TOKEN_IDENTIFIER, Value: "xy"},
+			{Kind: TOKEN_COLONEQUAL, Value: ":="},
+			{Kind: TOKEN_INT, Value: "42"},
+			{Kind: TOKEN_EOF, Value: ""},
 		},
-		stream.tokens,
+		tokenStream.tokens,
+		opts...,
 	)
+	if len(d) != 0 {
+		t.Errorf("(-got +want)\n%s", d)
+	}
 }
 
 func TestTokenizeInt(t *testing.T) {
-	stream, err := Tokenize("42")
+	stream := NewByteStream("42")
+	tokenStream, err := Tokenize(stream)
 	assert.NoError(t, err)
-	assert.Equal(t,
+	d := cmp.Diff(
 		[]Token{
-			{kind: TOKEN_INT, value: "42"},
-			{kind: TOKEN_EOF, value: ""},
+			{Kind: TOKEN_INT, Value: "42"},
+			{Kind: TOKEN_EOF, Value: ""},
 		},
-		stream.tokens,
+		tokenStream.tokens,
+		opts...,
 	)
+	if len(d) != 0 {
+		t.Errorf("(-got +want)\n%s", d)
+	}
 }
 
 func TestTokenizeSymbols(t *testing.T) {
-	stream, err := Tokenize("+")
+	stream := NewByteStream("+")
+	tokenStream, err := Tokenize(stream)
 	assert.NoError(t, err)
-	assert.Equal(t, Token{kind: TOKEN_PLUS, value: "+"}, stream.tokens[0])
+	d := cmp.Diff(Token{Kind: TOKEN_PLUS, Value: "+"}, tokenStream.tokens[0], opts...)
+	if len(d) != 0 {
+		t.Errorf("(-got +want)\n%s", d)
+	}
 }
 
 func TestTokenizeKeywords(t *testing.T) {
-	stream, err := Tokenize("func main(){\nreturn abc\n}\n")
+	stream := NewByteStream("func main(){\nreturn abc\n}\n")
+	tokenStream, err := Tokenize(stream)
 	assert.NoError(t, err)
-	assert.Equal(t,
+	d := cmp.Diff(
 		[]Token{
-			{kind: TOKEN_FUNC, value: "func"},
-			{kind: TOKEN_IDENTIFIER, value: "main"},
-			{kind: TOKEN_LPAREN, value: "("},
-			{kind: TOKEN_RPAREN, value: ")"},
-			{kind: TOKEN_LBRACE, value: "{"},
-			{kind: TOKEN_RETURN, value: "return"},
-			{kind: TOKEN_IDENTIFIER, value: "abc"},
-			{kind: TOKEN_SEMICOLON, value: ";"},
-			{kind: TOKEN_RBRACE, value: "}"},
-			{kind: TOKEN_SEMICOLON, value: ";"},
-			{kind: TOKEN_EOF, value: ""},
+			{Kind: TOKEN_FUNC, Value: "func"},
+			{Kind: TOKEN_IDENTIFIER, Value: "main"},
+			{Kind: TOKEN_LPAREN, Value: "("},
+			{Kind: TOKEN_RPAREN, Value: ")"},
+			{Kind: TOKEN_LBRACE, Value: "{"},
+			{Kind: TOKEN_RETURN, Value: "return"},
+			{Kind: TOKEN_IDENTIFIER, Value: "abc"},
+			{Kind: TOKEN_SEMICOLON, Value: ";"},
+			{Kind: TOKEN_RBRACE, Value: "}"},
+			{Kind: TOKEN_SEMICOLON, Value: ";"},
+			{Kind: TOKEN_EOF, Value: ""},
 		},
-		stream.tokens,
+		tokenStream.tokens,
+		opts...,
 	)
+	if len(d) != 0 {
+		t.Errorf("(-got +want)\n%s", d)
+	}
 }
 
 func TestTokenizeIdentifier(t *testing.T) {
-	stream, err := Tokenize("abc12")
+	stream := NewByteStream("abc12")
+	tokenStream, err := Tokenize(stream)
 	assert.NoError(t, err)
-	assert.Equal(t, Token{kind: TOKEN_IDENTIFIER, value: "abc12"}, stream.tokens[0])
+	d := cmp.Diff(Token{Kind: TOKEN_IDENTIFIER, Value: "abc12"}, tokenStream.tokens[0], opts...)
+	if len(d) != 0 {
+		t.Errorf("(-got +want)\n%s", d)
+	}
 }

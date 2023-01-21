@@ -9,6 +9,7 @@ import (
 )
 
 var opts = []cmp.Option{
+	cmpopts.IgnoreUnexported(Token{}),
 	cmpopts.IgnoreUnexported(FunctionDecl{}),
 	cmpopts.IgnoreUnexported(Block{}),
 	cmpopts.IgnoreUnexported(Return{}),
@@ -22,8 +23,9 @@ var opts = []cmp.Option{
 }
 
 func TestFuncDef(t *testing.T) {
-	stream, _ := Tokenize("func main(){\nabc := 3\nreturn abc\n}\n")
-	ast, err := Parse(stream)
+	stream := NewByteStream("func main(){\nabc := 3\nreturn abc\n}\n")
+	tokenStream, _ := Tokenize(stream)
+	ast, err := Parse(tokenStream)
 	assert.NoError(t, err)
 
 	d := cmp.Diff(
@@ -45,8 +47,9 @@ func TestFuncDef(t *testing.T) {
 }
 
 func TestCallFunctionWithoutArgument(t *testing.T) {
-	stream, _ := Tokenize("func main() int{\n x := f()\nreturn x\n}\nfunc f() int {\nreturn 3\n}\n")
-	ast, err := Parse(stream)
+	stream := NewByteStream("func main() int{\n x := f()\nreturn x\n}\nfunc f() int {\nreturn 3\n}\n")
+	tokenStream, _ := Tokenize(stream)
+	ast, err := Parse(tokenStream)
 	assert.NoError(t, err)
 	assert.Equal(t, &TypeInt, ast.funcs[0].ReturnType)
 	d := cmp.Diff(
@@ -82,8 +85,9 @@ func TestCallFunctionWithoutArgument(t *testing.T) {
 }
 
 func TestFuncReturnType(t *testing.T) {
-	stream, _ := Tokenize("func f() int {\nreturn 3\n}\n")
-	ast, err := Parse(stream)
+	stream := NewByteStream("func f() int {\nreturn 3\n}\n")
+	tokenStream, _ := Tokenize(stream)
+	ast, err := Parse(tokenStream)
 	assert.NoError(t, err)
 	assert.Equal(t, &TypeInt, ast.funcs[0].ReturnType)
 	if d := cmp.Diff(
@@ -100,8 +104,9 @@ func TestFuncReturnType(t *testing.T) {
 }
 
 func TestFunctionWithOneArgument(t *testing.T) {
-	stream, _ := Tokenize("func f(a int) int {\nreturn a\n}\n")
-	ast, err := Parse(stream)
+	stream := NewByteStream("func f(a int) int {\nreturn a\n}\n")
+	tokenStream, _ := Tokenize(stream)
+	ast, err := Parse(tokenStream)
 	assert.NoError(t, err)
 	assert.Equal(t, &TypeInt, ast.funcs[0].ReturnType)
 	if d := cmp.Diff(
@@ -128,8 +133,9 @@ func TestFunctionWithOneArgument(t *testing.T) {
 }
 
 func TestFunctionWithArguments(t *testing.T) {
-	stream, _ := Tokenize("func f(a int, b int) int {\nreturn a + b\n}\n")
-	ast, err := Parse(stream)
+	stream := NewByteStream("func f(a int, b int) int {\nreturn a + b\n}\n")
+	tokenStream, _ := Tokenize(stream)
+	ast, err := Parse(tokenStream)
 	assert.NoError(t, err)
 	assert.Equal(t, &TypeInt, ast.funcs[0].ReturnType)
 	if d := cmp.Diff(
@@ -162,8 +168,9 @@ func TestFunctionWithArguments(t *testing.T) {
 }
 
 func TestCallFunctionWithArgument(t *testing.T) {
-	stream, _ := Tokenize("func main() {\nx := f(1)\nreturn x\n}\nfunc f(a int) int {\nreturn a\n}\n")
-	ast, err := Parse(stream)
+	stream := NewByteStream("func main() {\nx := f(1)\nreturn x\n}\nfunc f(a int) int {\nreturn a\n}\n")
+	tokenStream, _ := Tokenize(stream)
+	ast, err := Parse(tokenStream)
 	assert.NoError(t, err)
 	if d := cmp.Diff(
 		&Block{
@@ -187,8 +194,9 @@ func TestCallFunctionWithArgument(t *testing.T) {
 }
 
 func TestCallFunctionWithArguments(t *testing.T) {
-	stream, _ := Tokenize("func main() {\nx := 1\ny := f(x, 2 + 3)\nreturn y\n}\nfunc f(a int, b int) int {\nreturn a + b\n}\n")
-	ast, err := Parse(stream)
+	stream := NewByteStream("func main() {\nx := 1\ny := f(x, 2 + 3)\nreturn y\n}\nfunc f(a int, b int) int {\nreturn a + b\n}\n")
+	tokenStream, _ := Tokenize(stream)
+	ast, err := Parse(tokenStream)
 	assert.NoError(t, err)
 	if d := cmp.Diff(
 		&Block{
@@ -222,8 +230,9 @@ func TestCallFunctionWithArguments(t *testing.T) {
 }
 
 func TestBool(t *testing.T) {
-	stream, _ := Tokenize("func main(){\nreturn true\n}\n")
-	ast, err := Parse(stream)
+	stream := NewByteStream("func main(){\nreturn true\n}\n")
+	tokenStream, _ := Tokenize(stream)
+	ast, err := Parse(tokenStream)
 	assert.NoError(t, err)
 	if d := cmp.Diff(
 		&Block{
@@ -241,8 +250,9 @@ func TestBool(t *testing.T) {
 }
 
 func TestShortVarDeclAndAdd(t *testing.T) {
-	stream, _ := Tokenize("func main(){\nxy := 1 + 2 + 3\nreturn xy\n}\n")
-	ast, err := Parse(stream)
+	stream := NewByteStream("func main(){\nxy := 1 + 2 + 3\nreturn xy\n}\n")
+	tokenStream, _ := Tokenize(stream)
+	ast, err := Parse(tokenStream)
 	assert.NoError(t, err)
 
 	if d := cmp.Diff(
@@ -269,13 +279,15 @@ func TestShortVarDeclAndAdd(t *testing.T) {
 }
 
 func TestLhsOfShortVarDeclIsNotIdentifier(t *testing.T) {
-	stream, _ := Tokenize("func main(){\n1 := 2\n}\n")
-	_, err := Parse(stream)
+	stream := NewByteStream("func main(){\n1 := 2\n}\n")
+	tokenStream, _ := Tokenize(stream)
+	_, err := Parse(tokenStream)
 	assert.Error(t, err)
 }
 
 func TestNoNewVariableOnRhsOfShortVarDecl(t *testing.T) {
-	stream, _ := Tokenize("func main(){\nx := 1\nx := 2\n}\n")
-	_, err := Parse(stream)
+	stream := NewByteStream("func main(){\nx := 1\nx := 2\n}\n")
+	tokenStream, _ := Tokenize(stream)
+	_, err := Parse(tokenStream)
 	assert.EqualError(t, err, "no new variables on left side of :=")
 }
