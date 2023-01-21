@@ -46,7 +46,7 @@ func (parser *parser) skip() {
 func (parser *parser) expectString(expected string) (*Token, error) {
 	token := parser.peek()
 	if token.Value != expected {
-		return nil, fmt.Errorf("unexpected %s, expecting %s", token.Value, expected)
+		return nil, fmt.Errorf("%s: unexpected %s, expecting %s", token.pos.toString(), token.Value, expected)
 	}
 	parser.skip()
 	return token, nil
@@ -81,7 +81,7 @@ func (parser *parser) topLevelDecl() (*FunctionDecl, error) {
 	if token.Kind == TOKEN_FUNC {
 		return parser.functionDecl()
 	} else {
-		return nil, fmt.Errorf("syntax error: non-declaration statement outside function body: %s", token.Value)
+		return nil, fmt.Errorf("%s: syntax error: non-declaration statement outside function body: %s", token.pos.toString(), token.Value)
 	}
 }
 
@@ -117,7 +117,7 @@ func (parser *parser) functionDecl() (*FunctionDecl, error) {
 
 	token := parser.peek()
 	if token.Kind != TOKEN_IDENTIFIER {
-		err := fmt.Errorf("unexpected %s, expecting name", token.Value)
+		err := fmt.Errorf("%s: unexpected %s, expecting name", token.pos.toString(), token.Value)
 		return nil, err
 	}
 	name := token.Value
@@ -197,12 +197,12 @@ func (parser *parser) parameterDecl() (*Variable, error) {
 		parameter := &Variable{tok: parameterToken, Name: parameterToken.Value, Ty: ty}
 		name := parameterToken.Value
 		if parser.localScope.ExistsExpr(name) {
-			return nil, fmt.Errorf("%s redeclared in this block", name)
+			return nil, fmt.Errorf("%s: %s redeclared in this block", parameterToken.pos.toString(), name)
 		}
 		parser.localScope.InsertExpr(name, parameter)
 		return parameter, nil
 	}
-	return nil, fmt.Errorf("unexpected %s, expected )", parameterToken.Value)
+	return nil, fmt.Errorf("%s: unexpected %s, expected )", parameterToken.pos.toString(), parameterToken.Value)
 }
 
 func (parser *parser) parseType() (*Type, error) {
@@ -232,7 +232,7 @@ func (parser *parser) block() (*Block, error) {
 			break
 		}
 		if parser.peek().Kind == TOKEN_EOF {
-			return nil, fmt.Errorf("unexpected EOF, expecting }")
+			return nil, fmt.Errorf("%s: unexpected EOF, expecting }", parser.peek().pos.toString())
 		}
 
 		node, err := parser.stmt()
@@ -251,7 +251,7 @@ func (parser *parser) block() (*Block, error) {
 
 func (parser *parser) shortVarDecl(lhs Expr) (Expr, error) {
 	if _, ok := lhs.(*Identifier); !ok {
-		err := fmt.Errorf("unexpected %s, expecting variable", lhs.token().Value)
+		err := fmt.Errorf("%s: unexpected %s, expecting variable", lhs.token().pos.toString(), lhs.token().Value)
 		return nil, err
 	}
 
@@ -310,7 +310,7 @@ func (parser *parser) primaryExpr() (Expr, error) {
 
 		return &Identifier{tok: token, Name: token.Value}, nil
 	}
-	return nil, fmt.Errorf("unexpected %s, expecting primary expression", token.Value)
+	return nil, fmt.Errorf("%s: unexpected %s, expecting primary expression", token.pos.toString(), token.Value)
 }
 
 func (parser *parser) functionCall(token *Token) (Expr, error) {

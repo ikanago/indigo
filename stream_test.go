@@ -100,21 +100,3 @@ func TestUngetAroundNewLine(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, Position{Line: 2, Column: 0}, stream.CurrentPosition)
 }
-
-func TestComparePositionOnTheSameLine(t *testing.T) {
-	pos := Position{Line: 2, Column: 0}
-	other := Position{Line: 2, Column: 42}
-	assert.True(t, pos.isPrecedingTo(other))
-}
-
-func TestComparePositionOnDifferentLine(t *testing.T) {
-	pos := Position{Line: 2, Column: 0}
-	other := Position{Line: 3, Column: 42}
-	assert.True(t, pos.isPrecedingTo(other))
-}
-
-func TestCompareTheSamePosition(t *testing.T) {
-	pos := Position{Line: 2, Column: 0}
-	other := Position{Line: 2, Column: 0}
-	assert.False(t, pos.isPrecedingTo(other))
-}

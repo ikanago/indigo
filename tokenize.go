@@ -52,10 +52,10 @@ func Tokenize(stream *ByteStream) (*TokenStream, error) {
 	var tokens []Token
 	for {
 		currentByte, ok := stream.get()
-		pos := stream.CurrentPosition
 		if !ok {
 			break
 		}
+		pos := stream.CurrentPosition
 
 		if isWhitespace(currentByte) {
 			continue

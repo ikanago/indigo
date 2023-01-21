@@ -69,7 +69,7 @@ func TestReturnUndefinedVariable(t *testing.T) {
 	ast, err := Parse(tokenStream)
 	assert.NoError(t, err)
 	err = ast.InferType()
-	assert.EqualError(t, err, "undefined: abc")
+	assert.EqualError(t, err, "2:8: undefined: abc")
 }
 
 func TestNotEnoughReturnType(t *testing.T) {
@@ -78,7 +78,7 @@ func TestNotEnoughReturnType(t *testing.T) {
 	ast, err := Parse(tokenStream)
 	assert.NoError(t, err)
 	err = ast.InferType()
-	assert.EqualError(t, err, "not enough return values\n\thave: ()\n\twant: (bool)")
+	assert.EqualError(t, err, "1:1: not enough return values\n\thave: ()\n\twant: (bool)")
 }
 
 func TestTooManyReturnType(t *testing.T) {
@@ -87,7 +87,7 @@ func TestTooManyReturnType(t *testing.T) {
 	ast, err := Parse(tokenStream)
 	assert.NoError(t, err)
 	err = ast.InferType()
-	assert.EqualError(t, err, "too many return values\n\thave: (int)\n\twant: ()")
+	assert.EqualError(t, err, "1:1: too many return values\n\thave: (int)\n\twant: ()")
 }
 
 func TestDiffentReturnType(t *testing.T) {
@@ -96,7 +96,7 @@ func TestDiffentReturnType(t *testing.T) {
 	ast, err := Parse(tokenStream)
 	assert.NoError(t, err)
 	err = ast.InferType()
-	assert.EqualError(t, err, "cannot use int as bool in return statement")
+	assert.EqualError(t, err, "1:1: cannot use int as bool in return statement")
 }
 
 func TestDifferentTypeAdd(t *testing.T) {
@@ -105,7 +105,7 @@ func TestDifferentTypeAdd(t *testing.T) {
 	ast, err := Parse(tokenStream)
 	assert.NoError(t, err)
 	err = ast.InferType()
-	assert.EqualError(t, err, "invalid operation: adding different types")
+	assert.EqualError(t, err, "2:10: invalid operation: adding different types")
 }
 
 func TestAddingNil(t *testing.T) {
@@ -115,5 +115,5 @@ func TestAddingNil(t *testing.T) {
 	ast, err := Parse(tokenStream)
 	assert.NoError(t, err)
 	err = ast.InferType()
-	assert.EqualError(t, err, "invalid operation: adding different types")
+	assert.EqualError(t, err, "2:10: invalid operation: adding different types")
 }

@@ -1,5 +1,7 @@
 package main
 
+import "fmt"
+
 type ByteStream struct {
 	source          string
 	currentIndex    int
@@ -59,13 +61,6 @@ func (position Position) step() Position {
 	}
 }
 
-func (position Position) stepBy(n int) Position {
-	return Position{
-		Line:   position.Line,
-		Column: position.Column + n,
-	}
-}
-
 func (position Position) back() Position {
 	return Position{
 		Line:   position.Line,
@@ -87,9 +82,6 @@ func (position Position) previousLine() Position {
 	}
 }
 
-func (pos Position) isPrecedingTo(other Position) bool {
-	if pos.Line == other.Line {
-		return pos.Column < other.Column
-	}
-	return pos.Line < other.Line
+func (position Position) toString() string {
+	return fmt.Sprintf("%d:%d", position.Line, position.Column)
 }
